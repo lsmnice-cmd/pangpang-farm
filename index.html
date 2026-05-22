@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>팡팡 농장</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- 메인 화면 -->
+        <div class="screen screen-main active" id="screen-main">
+            <header class="main-header">
+                <h1>🌾 팡팡 농장</h1>
+                <div class="header-right">
+                    <div class="heart-box">
+                        <span>❤️</span>
+                        <span id="heart-count-main">3</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="big-farm" id="big-farm">
+                <div class="sky" id="sky-main"></div>
+                <div class="stars" id="stars-main"></div>
+                <div class="celestial" id="celestial-main">☀️</div>
+                <div class="clouds" id="clouds-main">
+                    <div class="cloud cloud-1">☁️</div>
+                    <div class="cloud cloud-2">☁️</div>
+                    <div class="cloud cloud-3">☁️</div>
+                </div>
+                <div class="time-display" id="time-text-main">12:00</div>
+                <div class="big-grass"></div>
+                <div class="big-animals" id="big-animals"></div>
+            </div>
+
+            <div class="main-info">
+                <div>🏡 농장: <span id="slot-count-main">0</span> / 5</div>
+            </div>
+
+            <div class="main-menu">
+                <button class="menu-btn menu-puzzle" onclick="goToPuzzle()">
+                    <span class="menu-icon">🎮</span>
+                    <span class="menu-text">퍼즐 시작</span>
+                    <span class="menu-sub">하트 1개 사용</span>
+                </button>
+                <button class="menu-btn menu-contest" disabled>
+                    <span class="menu-icon">🏆</span>
+                    <span class="menu-text">먹방대회</span>
+                    <span class="menu-sub">준비중</span>
+                </button>
+                <button class="menu-btn menu-settings" onclick="openSettings()">
+                    <span class="menu-icon">⚙️</span>
+                    <span class="menu-text">설정</span>
+                    <span class="menu-sub">관리/도움말</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 퍼즐 화면 -->
+        <div class="screen screen-puzzle" id="screen-puzzle">
+            <!-- 상단 통합 헤더: 뒤로 / 동물정보 / 타이머 -->
+            <div class="puzzle-top">
+                <button class="btn-back" onclick="confirmExitPuzzle()">←</button>
+                <div class="puzzle-top-center">
+                    <div class="active-row">
+                        <span class="active-emoji-mini" id="active-emoji-mini">🐤</span>
+                        <div class="active-meta">
+                            <span class="active-name-mini" id="active-name-mini">병아리</span>
+                            <span class="active-lv-mini">Lv.<span id="active-level-mini">1</span></span>
+                        </div>
+                    </div>
+                    <div class="growth-bar-bg">
+                        <div class="growth-bar-fill" id="growth-bar"></div>
+                    </div>
+                </div>
+                <div class="combo-box" id="combo-box" style="opacity:0;">
+                    ×<span id="combo-text">1</span>
+                </div>
+            </div>
+
+            <!-- 작은 농장 (활성 동물 + 들판) -->
+            <div class="puzzle-mini-farm" id="puzzle-mini-farm">
+                <div class="sky"></div>
+                <div class="puzzle-mini-grass"></div>
+                <div class="puzzle-mini-fence"></div>
+                <div class="dropped-crops-layer" id="dropped-crops-layer"></div>
+                <div class="puzzle-active-spot" id="puzzle-active-spot">🐤</div>
+            </div>
+
+            <!-- 게임판 (축소) -->
+            <div class="board-wrapper">
+                <div id="board" class="board"></div>
+                <div id="fly-layer" class="fly-layer"></div>
+            </div>
+
+            <!-- 타이머 게이지 -->
+            <div class="timer-gauge-wrap">
+                <div class="timer-gauge-label">
+                    ⏱️ <span id="timer-text">2:00</span>
+                </div>
+                <div class="timer-gauge-bg">
+                    <div class="timer-gauge-fill" id="timer-gauge-fill"></div>
+                </div>
+            </div>
+
+            <!-- 힌트 버튼 -->
+            <button class="btn-hint" onclick="useHint()">
+                💡 힌트 (-60초)
+            </button>
+        </div>
+
+        <!-- 결과 화면 -->
+        <div class="screen screen-result" id="screen-result">
+            <div class="result-card">
+                <div class="result-emoji" id="result-screen-emoji">⏰</div>
+                <h2 id="result-screen-title">시간 종료!</h2>
+                <div class="result-stats">
+                    <div class="stat-row">
+                        <span>매치 횟수</span>
+                        <span class="stat-value" id="stat-matches">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>최대 콤보</span>
+                        <span class="stat-value">×<span id="stat-combo">1</span></span>
+                    </div>
+                    <div class="stat-row highlight">
+                        <span>획득 EXP</span>
+                        <span class="stat-value" id="stat-exp">0</span>
+                    </div>
+                </div>
+                <div class="result-animal-box">
+                    <div class="result-animal-name" id="result-animal-name">뿌약이</div>
+                    <div class="result-animal-lv">
+                        Lv.<span id="result-from-lv">1</span> → Lv.<span id="result-to-lv">3</span>
+                    </div>
+                </div>
+                <button class="btn-back-farm" onclick="goToMain()">
+                    🏡 농장으로 돌아가기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달들 -->
+    <div class="modal-overlay" id="name-overlay">
+        <div class="modal">
+            <div class="modal-emoji">🐤</div>
+            <h2>환영해요!</h2>
+            <p>첫 병아리에게 이름을 지어주세요</p>
+            <input type="text" id="animal-name-input" maxlength="10" placeholder="예: 뿌약이">
+            <div class="modal-buttons">
+                <button class="btn-roulette" onclick="confirmName()">시작하기</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <div class="modal-emoji" id="modal-emoji">🐓</div>
+            <h2 id="modal-title">닭으로 다 자랐어요!</h2>
+            <p id="modal-desc"><span id="modal-animal-name"></span>를 어떻게 할까요?</p>
+            <div class="modal-buttons">
+                <button class="btn-companion" onclick="chooseCompanion()" id="btn-companion">🤝 농장에서 같이 살기</button>
+                <button class="btn-upgrade" id="btn-upgrade" onclick="chooseUpgrade()">⬆️ 다음 동물로 승급</button>
+                <button class="btn-roulette" onclick="chooseRoulette()">🎰 룰렛 돌리기</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="roulette-overlay">
+        <div class="modal modal-roulette">
+            <h2>🎰 행운의 룰렛</h2>
+            <div class="roulette-wrapper">
+                <div class="roulette-pointer">▼</div>
+            </div>
+            <button class="btn-spin" id="btn-spin" onclick="spinRoulette()">룰렛 돌리기!</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="prize-overlay">
+        <div class="modal">
+            <div class="modal-emoji" id="prize-emoji">🎉</div>
+            <h2 id="prize-title">축하합니다!</h2>
+            <p id="prize-label" style="font-size:18px; font-weight:bold; color:#FF8C42;"></p>
+            <p id="prize-desc" style="color:#666; font-size:14px; margin-top:12px; white-space:pre-line;"></p>
+            <div class="modal-buttons">
+                <button class="btn-roulette" onclick="closePrize()">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="settings-overlay">
+        <div class="modal">
+            <h2>⚙️ 설정</h2>
+            <div class="settings-list">
+                <button class="settings-item" onclick="confirmReset()">
+                    🗑️ 데이터 초기화
+                </button>
+                <div class="settings-info">
+                    <p>버전 0.6 (개발 중)</p>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-roulette" onclick="closeSettings()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="exit-overlay">
+        <div class="modal">
+            <div class="modal-emoji">⚠️</div>
+            <h2>나가시겠어요?</h2>
+            <p>지금 나가면 게임이 종료돼요.<br>(획득한 EXP는 유지됩니다)</p>
+            <div class="modal-buttons">
+                <button class="btn-upgrade" onclick="closeExit()">계속하기</button>
+                <button class="btn-roulette" onclick="exitToMain()">나가기</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="no-heart-overlay">
+        <div class="modal">
+            <div class="modal-emoji">💔</div>
+            <h2>하트가 부족해요</h2>
+            <p>매일 자정에 하트 3개가 충전돼요</p>
+            <div class="modal-buttons">
+                <button class="btn-roulette" onclick="closeNoHeart()">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="full-overlay">
+        <div class="modal">
+            <div class="modal-emoji">🍽️</div>
+            <h2>오늘 다 먹었어요!</h2>
+            <p>내일 다시 먹이를 줄 수 있어요</p>
+            <div class="modal-buttons">
+                <button class="btn-roulette" onclick="closeFull()">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
