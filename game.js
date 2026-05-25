@@ -224,12 +224,13 @@ const REWARDS = {
 const MAX_HEARTS = 5;
 const DAILY_HEARTS = 3;
 const MAX_FARM_SLOTS = 5;
-const DAILY_EXP_LIMIT = 4800;
-const MATCH_BASE_EXP = 25;
+const DAILY_EXP_LIMIT = 1800;
+const MATCH_BASE_EXP = 5;
 const INITIAL_TIME = 120;
 const HINT_FREE_COUNT = 3;
 const HINT_TIME_COST = 30;
 const TIME_PER_MATCH = 1;
+const COMBO_BOMB_TRIGGER = 10;
 
 // ============================================
 // 게임 상태
@@ -927,11 +928,12 @@ function processMatches() {
     comboCount++;
     sessionMatches++;
     if (comboCount > sessionMaxCombo) sessionMaxCombo = comboCount;
-    const multiplier = comboCount;
-    const expGain = MATCH_BASE_EXP * multiplier;
+    
+    // 매치당 고정 EXP (콤보 보너스 없음)
+    const expGain = MATCH_BASE_EXP;
 
-    if (multiplier >= 2) {
-        comboText.textContent = multiplier;
+    if (comboCount >= 2) {
+        comboText.textContent = comboCount;
         comboBox.style.opacity = '1';
         comboBox.style.transform = 'scale(1.2)';
         setTimeout(() => { comboBox.style.transform = 'scale(1)'; }, 200);
@@ -942,7 +944,7 @@ function processMatches() {
 
     const matchData = matches.map(m => ({ row: m.row, col: m.col, crop: board[m.row][m.col] }));
     if (matchData.length > 0 && matchData[0]) {
-        showScorePopup(matchData[0], expGain, multiplier);
+        showScorePopup(matchData[0], expGain, comboCount);
     }
 
     matchData.forEach(m => {
@@ -960,6 +962,9 @@ function processMatches() {
 
     grantExpToActive(expGain);
 
+    // 10콤보 도달 시 폭탄
+    const triggerBomb = comboCount === COMBO_BOMB_TRIGGER;
+
     setTimeout(() => {
         matches.forEach(({row, col}) => { board[row][col] = null; });
         dropDown();
@@ -968,6 +973,12 @@ function processMatches() {
 
         setTimeout(() => {
             if (puzzleTimer <= 0) return;
+            
+            if (triggerBomb) {
+                triggerBombEffect();
+                return;
+            }
+            
             const more = findMatches();
             if (more.length > 0) {
                 processMatches();
@@ -977,6 +988,118 @@ function processMatches() {
             }
         }, 300);
     }, 400);
+}
+
+// ============================================
+// 10콤보 폭탄 시스템
+// ============================================
+function triggerBombEffect() {
+    const cropsOnBoard = {};
+    for (let row = 0; row < BOARD_SIZE; row++) {
+        for (let col = 0; col < BOARD_SIZE; col++) {
+            if (board[row][col]) {
+                const id = board[row][col].id;
+                if (!cropsOnBoard[id]) cropsOnBoard[id] = [];
+                cropsOnBoard[id].push({row, col});
+            }
+        }
+    }
+    
+    const cropIds = Object.keys(cropsOnBoard);
+    if (cropIds.length === 0) {
+        comboCount = 0;
+        checkEndConditions();
+        return;
+    }
+    
+    const targetId = cropIds[Math.floor(Math.random() * cropIds.length)];
+    const targetCells = cropsOnBoard[targetId];
+    const targetCrop = ALL_CROPS.find(c => c.id === targetId);
+    
+    showBombEffect(targetCrop);
+    
+    // 폭탄 EXP 보너스 (제거된 작물 수만큼)
+    const bombExp = MATCH_BASE_EXP * targetCells.length;
+    sessionMatches += targetCells.length;
+    grantExpToActive(bombExp);
+    
+    // 폭발 효과 + 작물이 들판으로 떨어짐
+    targetCells.forEach((pos, idx) => {
+        const cell = boardElement.children[pos.row * BOARD_SIZE + pos.col];
+        if (cell) {
+            setTimeout(() => {
+                spawnParticles(cell);
+                cell.classList.add('matching');
+                dropCropToField(cell, targetCrop);
+            }, idx * 80);
+        }
+    });
+    
+    // 시간 보너스
+    addTime(5);
+    
+    setTimeout(() => {
+        targetCells.forEach(({row, col}) => { board[row][col] = null; });
+        dropDown();
+        fillEmpty();
+        renderBoard();
+        
+        setTimeout(() => {
+            if (puzzleTimer <= 0) return;
+            const more = findMatches();
+            if (more.length > 0) {
+                comboCount = 0;
+                processMatches();
+            } else {
+                comboCount = 0;
+                checkEndConditions();
+            }
+        }, 500);
+    }, 800);
+}
+
+function showBombEffect(crop) {
+    if (!flyLayer) return;
+    
+    const bomb = document.createElement('div');
+    bomb.textContent = '💣 BOOM! 💥';
+    bomb.style.cssText = `
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 36px;
+        font-weight: bold;
+        color: #FF1744;
+        text-shadow: 0 0 20px #FFD700, 0 2px 6px rgba(0,0,0,0.5);
+        z-index: 100;
+        animation: bombPop 1.2s ease-out forwards;
+        white-space: nowrap;
+        pointer-events: none;
+    `;
+    flyLayer.appendChild(bomb);
+    
+    if (crop) {
+        const target = document.createElement('div');
+        target.textContent = crop.emoji + ' 폭파!';
+        target.style.cssText = `
+            position: absolute;
+            left: 50%;
+            top: 65%;
+            transform: translate(-50%, -50%);
+            font-size: 22px;
+            font-weight: bold;
+            color: #FF6B35;
+            text-shadow: 0 2px 4px rgba(255,255,255,0.9);
+            z-index: 100;
+            animation: bombPop 1.2s ease-out forwards;
+            pointer-events: none;
+        `;
+        flyLayer.appendChild(target);
+        setTimeout(() => target.remove(), 1200);
+    }
+    
+    setTimeout(() => bomb.remove(), 1200);
 }
 
 function checkEndConditions() {
@@ -1196,7 +1319,7 @@ function showScorePopup(matchPos, expGain, multiplier) {
     popup.className = 'score-popup';
     if (multiplier >= 2) {
         popup.classList.add('combo');
-        popup.textContent = '×' + multiplier + ' +' + expGain;
+        popup.textContent = '+' + expGain;
     } else {
         popup.textContent = '+' + expGain;
     }
