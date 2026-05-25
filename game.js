@@ -1,5 +1,5 @@
 // ============================================
-// 네이버 로그인 설정
+// 네이버 로그인
 // ============================================
 const NAVER_CLIENT_ID = 'F4KAOrNX_NAYeUvnbEgI';
 const NAVER_CALLBACK_URL = window.location.origin + window.location.pathname;
@@ -61,10 +61,11 @@ function loginAsGuest() {
     currentUser = {
         id: guestId,
         name: '게스트',
+        email: '',
         type: 'guest'
     };
     localStorage.setItem('pangpang-user', JSON.stringify(currentUser));
-    console.log('👤 게스트 모드 시작:', currentUser);
+    console.log('👤 게스트 모드:', currentUser);
     afterLogin();
 }
 
@@ -95,13 +96,13 @@ function afterLogin() {
 // ============================================
 const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbyLv8diy8EwsdaNl_lkEza3U2gkHqudkrxzVMPC_VM9tOhcovikesaK-E3frY-77JA/exec';
 
-function getUserId() {
-    return currentUser ? currentUser.id : null;
-}
+// 테스트 모드: 'EXP', '하트', 'EXP하트', '' 중 하나
+let testMode = '';
 
-function getUserName() {
-    return currentUser ? currentUser.name : '게스트';
-}
+function getUserId() { return currentUser ? currentUser.id : null; }
+function getUserName() { return currentUser ? currentUser.name : '게스트'; }
+function isExpTest() { return testMode === 'EXP' || testMode === 'EXP하트'; }
+function isHeartTest() { return testMode === '하트' || testMode === 'EXP하트'; }
 
 async function saveToBackend(state) {
     const uid = getUserId();
@@ -125,8 +126,6 @@ async function saveToBackend(state) {
     }
 }
 
-let testMode = false;  // 테스트 모드 (스프레드시트 F열로 제어)
-
 async function loadFromBackend() {
     const uid = getUserId();
     if (!uid) return null;
@@ -136,12 +135,11 @@ async function loadFromBackend() {
         const json = await res.json();
         console.log('📥 백엔드 불러옴:', json);
         
-        // 테스트 모드 체크
-        if (json.mode === '테스트') {
-            testMode = true;
-            console.log('🧪 테스트 모드 활성화! EXP 100배');
+        if (json.mode === 'EXP' || json.mode === '하트' || json.mode === 'EXP하트' || json.mode === '테스트') {
+            testMode = json.mode === '테스트' ? 'EXP하트' : json.mode;
+            console.log('🧪 테스트 모드:', testMode);
         } else {
-            testMode = false;
+            testMode = '';
         }
         
         if (json.ok && json.data) return json.data;
@@ -173,6 +171,235 @@ async function recordWinToBackend(animal, reward) {
     } catch (e) {
         console.warn('당첨 기록 실패', e);
     }
+}
+
+// ============================================
+// 사운드 시스템 (Web Audio API + TTS)
+// ============================================
+let audioCtx = null;
+let bgmGain = null;
+let bgmOscillators = [];
+let soundEnabled = true;
+let audioUnlocked = false;
+
+function loadSoundSetting() {
+    const saved = localStorage.getItem('pangpang-sound');
+    soundEnabled = saved !== 'off';
+    updateSoundButton();
+}
+
+function toggleSound() {
+    soundEnabled = !soundEnabled;
+    localStorage.setItem('pangpang-sound', soundEnabled ? 'on' : 'off');
+    updateSoundButton();
+    if (soundEnabled) {
+        if (screenPuzzle && screenPuzzle.classList.contains('active')) {
+            startBGM();
+        }
+    } else {
+        stopBGM();
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+    }
+}
+
+function updateSoundButton() {
+    const btn = document.getElementById('settings-sound');
+    if (btn) {
+        btn.textContent = soundEnabled ? '🔊 사운드: 켜짐' : '🔇 사운드: 꺼짐';
+    }
+}
+
+function initAudio() {
+    if (audioCtx) return;
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioCtx();
+        audioUnlocked = true;
+    } catch (e) {
+        console.warn('Audio Context 실패', e);
+    }
+}
+
+// 매치 사운드 (팝!)
+function playMatchSound() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(1200, now + 0.08);
+        
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        
+        osc.start(now);
+        osc.stop(now + 0.15);
+    } catch (e) {}
+}
+
+// 콤보 사운드 (콤보 횟수에 따라 음 높아짐)
+function playComboSound(comboNum) {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        const baseFreq = 440 + (comboNum * 80);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(baseFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, now + 0.2);
+        
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        
+        osc.start(now);
+        osc.stop(now + 0.3);
+    } catch (e) {}
+}
+
+// 폭탄 사운드 (꽝!)
+function playBombSound() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const now = audioCtx.currentTime;
+        
+        // 저음 폭발음
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.type = 'sawtooth';
+        osc1.frequency.setValueAtTime(100, now);
+        osc1.frequency.exponentialRampToValueAtTime(40, now + 0.5);
+        gain1.gain.setValueAtTime(0.4, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        osc1.start(now);
+        osc1.stop(now + 0.5);
+        
+        // 노이즈 (지지직)
+        const bufferSize = audioCtx.sampleRate * 0.3;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+        }
+        const noise = audioCtx.createBufferSource();
+        const noiseGain = audioCtx.createGain();
+        noise.buffer = buffer;
+        noise.connect(noiseGain);
+        noiseGain.connect(audioCtx.destination);
+        noiseGain.gain.setValueAtTime(0.3, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        noise.start(now);
+    } catch (e) {}
+}
+
+// 레벨업 사운드 (띠리링)
+function playLevelUpSound() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const now = audioCtx.currentTime;
+        const notes = [523, 659, 784, 1047]; // C, E, G, C
+        notes.forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + i * 0.1);
+            gain.gain.setValueAtTime(0.2, now + i * 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.2);
+            osc.start(now + i * 0.1);
+            osc.stop(now + i * 0.1 + 0.2);
+        });
+    } catch (e) {}
+}
+
+// 작물 이름 음성 (TTS)
+function speakCropName(name) {
+    if (!soundEnabled) return;
+    if (!('speechSynthesis' in window)) return;
+    try {
+        const utterance = new SpeechSynthesisUtterance(name);
+        utterance.lang = 'ko-KR';
+        utterance.rate = 1.3;
+        utterance.pitch = 1.5;
+        utterance.volume = 0.7;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+    } catch (e) {}
+}
+
+// 배경음악 (간단한 농장 멜로디)
+function startBGM() {
+    if (!soundEnabled || !audioCtx || bgmOscillators.length > 0) return;
+    try {
+        bgmGain = audioCtx.createGain();
+        bgmGain.connect(audioCtx.destination);
+        bgmGain.gain.value = 0.05; // 매우 작게
+        
+        // C장조 단순 멜로디 반복 (도-미-솔-도-솔-미)
+        const melody = [
+            { note: 523, dur: 0.5 }, // C5
+            { note: 659, dur: 0.5 }, // E5
+            { note: 784, dur: 0.5 }, // G5
+            { note: 1047, dur: 0.5 }, // C6
+            { note: 784, dur: 0.5 },
+            { note: 659, dur: 0.5 },
+            { note: 587, dur: 0.5 }, // D5
+            { note: 659, dur: 1.0 }
+        ];
+        
+        const playMelody = () => {
+            if (!soundEnabled || !audioCtx) return;
+            let t = audioCtx.currentTime;
+            melody.forEach(({note, dur}) => {
+                const osc = audioCtx.createOscillator();
+                const noteGain = audioCtx.createGain();
+                osc.connect(noteGain);
+                noteGain.connect(bgmGain);
+                osc.type = 'sine';
+                osc.frequency.value = note;
+                noteGain.gain.setValueAtTime(0, t);
+                noteGain.gain.linearRampToValueAtTime(0.5, t + 0.05);
+                noteGain.gain.linearRampToValueAtTime(0.5, t + dur - 0.05);
+                noteGain.gain.linearRampToValueAtTime(0, t + dur);
+                osc.start(t);
+                osc.stop(t + dur);
+                bgmOscillators.push(osc);
+                t += dur;
+            });
+        };
+        
+        playMelody();
+        const interval = setInterval(() => {
+            if (!soundEnabled || bgmOscillators.length === 0) {
+                clearInterval(interval);
+                return;
+            }
+            playMelody();
+        }, 4500);
+        
+        bgmOscillators._interval = interval;
+    } catch (e) {
+        console.warn('BGM 시작 실패', e);
+    }
+}
+
+function stopBGM() {
+    if (bgmOscillators._interval) clearInterval(bgmOscillators._interval);
+    bgmOscillators.forEach(osc => {
+        try { osc.stop(); } catch (e) {}
+    });
+    bgmOscillators = [];
 }
 
 // ============================================
@@ -252,6 +479,8 @@ let board = [];
 let selectedCell = null;
 let isLocked = false;
 let comboCount = 0;
+let cumulativeCombo = 0;  // 누적 콤보 (게이지용)
+let bombReady = false;
 let dailyEatenToday = 0;
 let lastResetDate = '';
 let hearts = 3;
@@ -289,6 +518,9 @@ const timerText = document.getElementById('timer-text');
 const timerGaugeFill = document.getElementById('timer-gauge-fill');
 const comboBox = document.getElementById('combo-box');
 const comboText = document.getElementById('combo-text');
+const comboGaugeFill = document.getElementById('combo-gauge-fill');
+const comboGaugeText = document.getElementById('combo-gauge-text');
+const btnBomb = document.getElementById('btn-bomb');
 
 const skyMain = document.getElementById('sky-main');
 const celestialMain = document.getElementById('celestial-main');
@@ -451,11 +683,6 @@ function getAnimalEmoji(animal) {
     return animal.level >= MAX_LEVEL ? s.adultEmoji : s.babyEmoji;
 }
 
-function getAnimalStageName(animal) {
-    const s = STAGES[animal.stage];
-    return animal.level >= MAX_LEVEL ? s.adultName : s.babyName;
-}
-
 function renderBigFarm() {
     if (!bigAnimalsContainer) return;
     bigAnimalsContainer.innerHTML = '';
@@ -591,17 +818,15 @@ function enterMain() {
     renderBigFarm();
     startBigFarmWandering();
     updateSkyByTime();
+    stopBGM();
 }
 
-function goToMain() {
-    enterMain();
-}
-
-function updateHeartUI() {
-    if (heartCountMain) heartCountMain.textContent = hearts;
-}
+function goToMain() { enterMain(); }
+function updateHeartUI() { if (heartCountMain) heartCountMain.textContent = hearts; }
 
 function goToPuzzle() {
+    initAudio();  // 첫 클릭 시 오디오 활성화
+    
     if (!activeAnimalId || !getActiveAnimal() || getActiveAnimal().level >= MAX_LEVEL) {
         const growing = farmAnimals.find(a => a.level < MAX_LEVEL);
         if (growing) {
@@ -618,17 +843,19 @@ function goToPuzzle() {
         saveState();
     }
 
-    if (dailyEatenToday >= DAILY_EXP_LIMIT) {
+    if (dailyEatenToday >= DAILY_EXP_LIMIT && !isExpTest()) {
         document.getElementById('full-overlay').classList.add('active');
         return;
     }
 
-    if (hearts <= 0) {
+    if (hearts <= 0 && !isHeartTest()) {
         document.getElementById('no-heart-overlay').classList.add('active');
         return;
     }
 
-    hearts--;
+    if (!isHeartTest()) {
+        hearts--;
+    }
     saveState();
     updateHeartUI();
     startPuzzleSession();
@@ -644,6 +871,8 @@ function startPuzzleSession() {
     sessionGainedExp = 0;
     sessionHintsLeft = HINT_FREE_COUNT;
     comboCount = 0;
+    cumulativeCombo = 0;
+    bombReady = false;
     selectedCell = null;
     isLocked = false;
     droppedCropQueue = [];
@@ -656,11 +885,13 @@ function startPuzzleSession() {
     activePosY = 8;
 
     updatePuzzleUI();
+    updateComboGauge();
     initActiveAnimalPosition();
     board = createBoard();
     renderBoard();
     startTimer();
     startActiveAnimalWandering();
+    startBGM();
 }
 
 function initActiveAnimalPosition() {
@@ -696,6 +927,149 @@ function updatePuzzleUI() {
         const percent = Math.min(100, (active.exp / need) * 100);
         document.getElementById('growth-bar').style.width = percent + '%';
     }
+}
+
+// ============================================
+// 콤보 게이지
+// ============================================
+function updateComboGauge() {
+    if (!comboGaugeFill || !comboGaugeText) return;
+    const percent = Math.min(100, (cumulativeCombo / COMBO_BOMB_TRIGGER) * 100);
+    comboGaugeFill.style.height = percent + '%';
+    comboGaugeText.textContent = cumulativeCombo + '/' + COMBO_BOMB_TRIGGER;
+    
+    if (cumulativeCombo >= COMBO_BOMB_TRIGGER) {
+        comboGaugeFill.classList.add('full');
+        bombReady = true;
+        if (btnBomb) {
+            btnBomb.classList.add('active');
+            btnBomb.disabled = false;
+        }
+    } else {
+        comboGaugeFill.classList.remove('full');
+        bombReady = false;
+        if (btnBomb) {
+            btnBomb.classList.remove('active');
+            btnBomb.disabled = true;
+        }
+    }
+}
+
+function useBomb() {
+    if (!bombReady || isLocked || puzzleTimer <= 0) return;
+    
+    cumulativeCombo = 0;
+    bombReady = false;
+    updateComboGauge();
+    
+    triggerBombEffect();
+}
+
+function triggerBombEffect() {
+    playBombSound();
+    
+    const cropsOnBoard = {};
+    for (let row = 0; row < BOARD_SIZE; row++) {
+        for (let col = 0; col < BOARD_SIZE; col++) {
+            if (board[row][col]) {
+                const id = board[row][col].id;
+                if (!cropsOnBoard[id]) cropsOnBoard[id] = [];
+                cropsOnBoard[id].push({row, col});
+            }
+        }
+    }
+    
+    const cropIds = Object.keys(cropsOnBoard);
+    if (cropIds.length === 0) return;
+    
+    const targetId = cropIds[Math.floor(Math.random() * cropIds.length)];
+    const targetCells = cropsOnBoard[targetId];
+    const targetCrop = ALL_CROPS.find(c => c.id === targetId);
+    
+    showBombEffect(targetCrop);
+    
+    const bombExp = MATCH_BASE_EXP * targetCells.length;
+    sessionMatches += targetCells.length;
+    grantExpToActive(bombExp);
+    
+    targetCells.forEach((pos, idx) => {
+        const cell = boardElement.children[pos.row * BOARD_SIZE + pos.col];
+        if (cell) {
+            setTimeout(() => {
+                spawnParticles(cell);
+                cell.classList.add('matching');
+                dropCropToField(cell, targetCrop);
+            }, idx * 80);
+        }
+    });
+    
+    addTime(5);
+    
+    setTimeout(() => {
+        targetCells.forEach(({row, col}) => { board[row][col] = null; });
+        dropDown();
+        fillEmpty();
+        renderBoard();
+        
+        setTimeout(() => {
+            if (puzzleTimer <= 0) return;
+            const more = findMatches();
+            if (more.length > 0) {
+                comboCount = 0;
+                processMatches();
+            } else {
+                comboCount = 0;
+                checkEndConditions();
+            }
+        }, 500);
+    }, 800);
+}
+
+function showBombEffect(crop) {
+    if (!flyLayer) return;
+    
+    const bomb = document.createElement('div');
+    bomb.textContent = '💣 BOOM! 💥';
+    bomb.style.cssText = `
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 36px;
+        font-weight: bold;
+        color: #FF1744;
+        text-shadow: 0 0 20px #FFD700, 0 2px 6px rgba(0,0,0,0.5);
+        z-index: 100;
+        animation: bombPop 1.2s ease-out forwards;
+        white-space: nowrap;
+        pointer-events: none;
+    `;
+    flyLayer.appendChild(bomb);
+    
+    if (crop) {
+        const target = document.createElement('div');
+        target.textContent = crop.emoji + ' 폭파!';
+        target.style.cssText = `
+            position: absolute;
+            left: 50%;
+            top: 65%;
+            transform: translate(-50%, -50%);
+            font-size: 22px;
+            font-weight: bold;
+            color: #FF6B35;
+            text-shadow: 0 2px 4px rgba(255,255,255,0.9);
+            z-index: 100;
+            animation: bombPop 1.2s ease-out forwards;
+            pointer-events: none;
+        `;
+        flyLayer.appendChild(target);
+        setTimeout(() => target.remove(), 1200);
+        
+        // 폭파된 작물 이름 외치기
+        speakCropName(crop.name);
+    }
+    
+    setTimeout(() => bomb.remove(), 1200);
 }
 
 function startTimer() {
@@ -939,10 +1313,10 @@ function processMatches() {
     if (matches.length === 0) return;
 
     comboCount++;
+    cumulativeCombo++;  // 누적 콤보 증가
     sessionMatches++;
     if (comboCount > sessionMaxCombo) sessionMaxCombo = comboCount;
     
-    // 매치당 고정 EXP (콤보 보너스 없음)
     const expGain = MATCH_BASE_EXP;
 
     if (comboCount >= 2) {
@@ -951,13 +1325,21 @@ function processMatches() {
         comboBox.style.transform = 'scale(1.2)';
         setTimeout(() => { comboBox.style.transform = 'scale(1)'; }, 200);
         setTimeout(() => { comboBox.style.opacity = '0'; }, 1500);
+        playComboSound(comboCount);
+    } else {
+        playMatchSound();
     }
 
+    updateComboGauge();
     addTime(TIME_PER_MATCH);
 
     const matchData = matches.map(m => ({ row: m.row, col: m.col, crop: board[m.row][m.col] }));
     if (matchData.length > 0 && matchData[0]) {
         showScorePopup(matchData[0], expGain, comboCount);
+        // 작물 이름 외치기 (콤보 2 이상일 때만, 너무 시끄럽지 않게)
+        if (comboCount >= 2 && matchData[0].crop) {
+            speakCropName(matchData[0].crop.name);
+        }
     }
 
     matchData.forEach(m => {
@@ -975,9 +1357,6 @@ function processMatches() {
 
     grantExpToActive(expGain);
 
-    // 10콤보 도달 시 폭탄
-    const triggerBomb = comboCount === COMBO_BOMB_TRIGGER;
-
     setTimeout(() => {
         matches.forEach(({row, col}) => { board[row][col] = null; });
         dropDown();
@@ -986,12 +1365,6 @@ function processMatches() {
 
         setTimeout(() => {
             if (puzzleTimer <= 0) return;
-            
-            if (triggerBomb) {
-                triggerBombEffect();
-                return;
-            }
-            
             const more = findMatches();
             if (more.length > 0) {
                 processMatches();
@@ -1003,120 +1376,8 @@ function processMatches() {
     }, 400);
 }
 
-// ============================================
-// 10콤보 폭탄 시스템
-// ============================================
-function triggerBombEffect() {
-    const cropsOnBoard = {};
-    for (let row = 0; row < BOARD_SIZE; row++) {
-        for (let col = 0; col < BOARD_SIZE; col++) {
-            if (board[row][col]) {
-                const id = board[row][col].id;
-                if (!cropsOnBoard[id]) cropsOnBoard[id] = [];
-                cropsOnBoard[id].push({row, col});
-            }
-        }
-    }
-    
-    const cropIds = Object.keys(cropsOnBoard);
-    if (cropIds.length === 0) {
-        comboCount = 0;
-        checkEndConditions();
-        return;
-    }
-    
-    const targetId = cropIds[Math.floor(Math.random() * cropIds.length)];
-    const targetCells = cropsOnBoard[targetId];
-    const targetCrop = ALL_CROPS.find(c => c.id === targetId);
-    
-    showBombEffect(targetCrop);
-    
-    // 폭탄 EXP 보너스 (제거된 작물 수만큼)
-    const bombExp = MATCH_BASE_EXP * targetCells.length;
-    sessionMatches += targetCells.length;
-    grantExpToActive(bombExp);
-    
-    // 폭발 효과 + 작물이 들판으로 떨어짐
-    targetCells.forEach((pos, idx) => {
-        const cell = boardElement.children[pos.row * BOARD_SIZE + pos.col];
-        if (cell) {
-            setTimeout(() => {
-                spawnParticles(cell);
-                cell.classList.add('matching');
-                dropCropToField(cell, targetCrop);
-            }, idx * 80);
-        }
-    });
-    
-    // 시간 보너스
-    addTime(5);
-    
-    setTimeout(() => {
-        targetCells.forEach(({row, col}) => { board[row][col] = null; });
-        dropDown();
-        fillEmpty();
-        renderBoard();
-        
-        setTimeout(() => {
-            if (puzzleTimer <= 0) return;
-            const more = findMatches();
-            if (more.length > 0) {
-                comboCount = 0;
-                processMatches();
-            } else {
-                comboCount = 0;
-                checkEndConditions();
-            }
-        }, 500);
-    }, 800);
-}
-
-function showBombEffect(crop) {
-    if (!flyLayer) return;
-    
-    const bomb = document.createElement('div');
-    bomb.textContent = '💣 BOOM! 💥';
-    bomb.style.cssText = `
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 36px;
-        font-weight: bold;
-        color: #FF1744;
-        text-shadow: 0 0 20px #FFD700, 0 2px 6px rgba(0,0,0,0.5);
-        z-index: 100;
-        animation: bombPop 1.2s ease-out forwards;
-        white-space: nowrap;
-        pointer-events: none;
-    `;
-    flyLayer.appendChild(bomb);
-    
-    if (crop) {
-        const target = document.createElement('div');
-        target.textContent = crop.emoji + ' 폭파!';
-        target.style.cssText = `
-            position: absolute;
-            left: 50%;
-            top: 65%;
-            transform: translate(-50%, -50%);
-            font-size: 22px;
-            font-weight: bold;
-            color: #FF6B35;
-            text-shadow: 0 2px 4px rgba(255,255,255,0.9);
-            z-index: 100;
-            animation: bombPop 1.2s ease-out forwards;
-            pointer-events: none;
-        `;
-        flyLayer.appendChild(target);
-        setTimeout(() => target.remove(), 1200);
-    }
-    
-    setTimeout(() => bomb.remove(), 1200);
-}
-
 function checkEndConditions() {
-    if (dailyEatenToday >= DAILY_EXP_LIMIT) {
+    if (dailyEatenToday >= DAILY_EXP_LIMIT && !isExpTest()) {
         setTimeout(() => endPuzzleSession('full'), 500);
         return;
     }
@@ -1134,10 +1395,8 @@ function grantExpToActive(amount) {
     const active = getActiveAnimal();
     if (!active || active.level >= MAX_LEVEL) return;
     
-    // 테스트 모드면 EXP 100배 + 한도 무시
-    if (testMode) {
+    if (isExpTest()) {
         amount = amount * 100;
-        // 일일 한도 무시
         dailyEatenToday = 0;
     }
     
@@ -1154,6 +1413,7 @@ function grantExpToActive(amount) {
             active.exp -= need;
             active.level++;
             showLevelUpEffect(active);
+            playLevelUpSound();
         } else break;
     }
     if (active.level >= MAX_LEVEL) active.exp = 0;
@@ -1338,12 +1598,8 @@ function showScorePopup(matchPos, expGain, multiplier) {
 
     const popup = document.createElement('div');
     popup.className = 'score-popup';
-    if (multiplier >= 2) {
-        popup.classList.add('combo');
-        popup.textContent = '+' + expGain;
-    } else {
-        popup.textContent = '+' + expGain;
-    }
+    if (multiplier >= 2) popup.classList.add('combo');
+    popup.textContent = '+' + expGain;
     popup.style.left = cx + 'px';
     popup.style.top = cy + 'px';
     flyLayer.appendChild(popup);
@@ -1380,6 +1636,7 @@ function fillEmpty() {
 function endPuzzleSession(reason) {
     stopTimer();
     stopActiveAnimalWandering();
+    stopBGM();
     isLocked = true;
     const dropsLayer = document.getElementById('dropped-crops-layer');
     if (dropsLayer) dropsLayer.innerHTML = '';
@@ -1603,15 +1860,6 @@ function showPrize() {
 
     document.getElementById('roulette-overlay').classList.remove('active');
     document.getElementById('prize-overlay').classList.add('active');
-
-    console.log('🎯 당첨:', {
-        userId: getUserId(),
-        userName: getUserName(),
-        animalName: animal ? animal.name : '?',
-        stage: animal ? animal.stage : '?',
-        rewardLabel: reward.label,
-        rewardType: reward.type
-    });
 }
 
 function closePrize() {
@@ -1621,21 +1869,10 @@ function closePrize() {
     else renderBigFarm();
 }
 
-function closeNoHeart() {
-    document.getElementById('no-heart-overlay').classList.remove('active');
-}
-
-function closeFull() {
-    document.getElementById('full-overlay').classList.remove('active');
-}
-
-function openSettings() {
-    document.getElementById('settings-overlay').classList.add('active');
-}
-
-function closeSettings() {
-    document.getElementById('settings-overlay').classList.remove('active');
-}
+function closeNoHeart() { document.getElementById('no-heart-overlay').classList.remove('active'); }
+function closeFull() { document.getElementById('full-overlay').classList.remove('active'); }
+function openSettings() { document.getElementById('settings-overlay').classList.add('active'); }
+function closeSettings() { document.getElementById('settings-overlay').classList.remove('active'); }
 
 function confirmReset() {
     if (confirm('정말 모든 데이터를 초기화할까요?\n농장 동물, 진행도가 모두 사라집니다.')) {
@@ -1671,6 +1908,8 @@ async function bootGame() {
 }
 
 function init() {
+    loadSoundSetting();
+    
     const savedUser = localStorage.getItem('pangpang-user');
     if (savedUser) {
         try {

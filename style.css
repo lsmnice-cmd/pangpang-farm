@@ -35,9 +35,7 @@ body {
     justify-content: center;
 }
 
-.screen-login.active {
-    display: flex;
-}
+.screen-login.active { display: flex; }
 
 .login-card {
     text-align: center;
@@ -46,18 +44,13 @@ body {
     width: 100%;
 }
 
-.login-logo {
-    font-size: 80px;
-    margin-bottom: 12px;
-}
-
+.login-logo { font-size: 80px; margin-bottom: 12px; }
 .login-title {
     color: #6B4423;
     font-size: 32px;
     margin: 0 0 8px 0;
     font-weight: bold;
 }
-
 .login-desc {
     color: #999;
     font-size: 14px;
@@ -115,9 +108,7 @@ body {
     transition: transform 0.1s;
 }
 
-.btn-guest-login:hover {
-    transform: translateY(-2px);
-}
+.btn-guest-login:hover { transform: translateY(-2px); }
 
 .login-note {
     color: #999;
@@ -149,7 +140,6 @@ body {
 }
 
 .main-header h1 { margin: 0; color: #6B4423; font-size: 22px; }
-
 .header-right { display: flex; gap: 8px; align-items: center; }
 
 .heart-box {
@@ -286,8 +276,7 @@ body {
 
 .big-animals {
     position: absolute;
-    top: 0;
-    left: 0;
+    top: 0; left: 0;
     width: 100%;
     height: 100%;
     z-index: 5;
@@ -305,7 +294,6 @@ body {
 }
 
 .big-animal.adult { font-size: 50px; }
-
 .big-animal.walking { animation: bob 0.4s ease-in-out infinite; }
 
 @keyframes bob {
@@ -391,7 +379,7 @@ body {
 .menu-text { flex: 1; font-size: 17px; }
 .menu-sub { font-size: 12px; opacity: 0.85; font-weight: normal; }
 
-/* 퍼즐 화면 */
+/* 퍼즐 화면 상단 */
 .puzzle-top {
     display: flex;
     align-items: center;
@@ -603,10 +591,17 @@ body {
     100% { transform: scale(0); opacity: 0; }
 }
 
+/* 보드 + 콤보 게이지 영역 */
+.puzzle-play-area {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+    margin-bottom: 10px;
+}
+
 .board-wrapper {
     position: relative;
-    max-width: 360px;
-    margin: 0 auto 10px auto;
+    flex: 1;
 }
 
 .board {
@@ -679,6 +674,109 @@ body {
     0% { transform: scale(1); opacity: 1; }
     50% { transform: scale(1.4); opacity: 1; }
     100% { transform: scale(0); opacity: 0; }
+}
+
+/* 우측 콤보 게이지 */
+.combo-gauge-wrap {
+    width: 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: linear-gradient(180deg, #FFE9B0 0%, #FFD988 100%);
+    border: 2px solid #F5C156;
+    border-radius: 10px;
+    padding: 8px 4px;
+    gap: 6px;
+}
+
+.combo-gauge-label {
+    font-size: 11px;
+    font-weight: bold;
+    color: #6B4423;
+    text-align: center;
+}
+
+.combo-gauge-bg {
+    flex: 1;
+    width: 24px;
+    background: rgba(107, 68, 35, 0.2);
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(107, 68, 35, 0.3);
+    min-height: 180px;
+}
+
+.combo-gauge-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 0%;
+    background: linear-gradient(180deg, #FF1744, #FFD700);
+    border-radius: 12px;
+    transition: height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+}
+
+.combo-gauge-fill.full {
+    animation: gaugeFull 0.6s ease-in-out infinite;
+}
+
+@keyframes gaugeFull {
+    0%, 100% { box-shadow: 0 0 8px rgba(255, 215, 0, 0.6); }
+    50% { box-shadow: 0 0 20px rgba(255, 215, 0, 1), 0 0 30px rgba(255, 23, 68, 0.8); }
+}
+
+.combo-gauge-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-90deg);
+    font-size: 10px;
+    font-weight: bold;
+    color: #6B4423;
+    white-space: nowrap;
+    text-shadow: 0 0 4px white;
+    pointer-events: none;
+}
+
+.btn-bomb {
+    width: 100%;
+    background: #ccc;
+    color: #999;
+    border: none;
+    padding: 8px 4px;
+    border-radius: 8px;
+    cursor: not-allowed;
+    font-size: 22px;
+    text-align: center;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.btn-bomb.active {
+    background: linear-gradient(135deg, #FF1744, #FF6B6B);
+    color: white;
+    cursor: pointer;
+    animation: bombReady 0.8s ease-in-out infinite;
+    box-shadow: 0 0 12px rgba(255, 23, 68, 0.6);
+}
+
+@keyframes bombReady {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+}
+
+.btn-bomb.active:hover {
+    transform: scale(1.1);
+}
+
+.bomb-label {
+    display: block;
+    font-size: 9px;
+    margin-top: 2px;
+    font-weight: bold;
 }
 
 .flying-crop {
@@ -989,6 +1087,7 @@ body {
 }
 
 .settings-info { color: #999; font-size: 12px; margin-top: 12px; }
+
 @keyframes bombPop {
     0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
     20% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }

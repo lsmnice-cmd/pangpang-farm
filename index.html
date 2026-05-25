@@ -9,7 +9,7 @@
 </head>
 <body>
     <div class="game-container">
-        <!-- 로그인 화면 (첫 접속) -->
+        <!-- 로그인 화면 -->
         <div class="screen screen-login active" id="screen-login">
             <div class="login-card">
                 <div class="login-logo">🌾</div>
@@ -113,9 +113,25 @@
                 <div class="puzzle-active-spot" id="puzzle-active-spot">🐤</div>
             </div>
 
-            <div class="board-wrapper">
-                <div id="board" class="board"></div>
-                <div id="fly-layer" class="fly-layer"></div>
+            <!-- 보드 + 콤보 게이지 영역 -->
+            <div class="puzzle-play-area">
+                <div class="board-wrapper">
+                    <div id="board" class="board"></div>
+                    <div id="fly-layer" class="fly-layer"></div>
+                </div>
+                
+                <!-- 우측 콤보 게이지 -->
+                <div class="combo-gauge-wrap">
+                    <div class="combo-gauge-label">콤보</div>
+                    <div class="combo-gauge-bg">
+                        <div class="combo-gauge-fill" id="combo-gauge-fill"></div>
+                        <div class="combo-gauge-text" id="combo-gauge-text">0/10</div>
+                    </div>
+                    <button class="btn-bomb" id="btn-bomb" onclick="useBomb()" disabled>
+                        💣
+                        <span class="bomb-label">폭탄</span>
+                    </button>
+                </div>
             </div>
 
             <div class="timer-gauge-wrap">
@@ -216,6 +232,9 @@
         <div class="modal">
             <h2>⚙️ 설정</h2>
             <div class="settings-list">
+                <button class="settings-item" onclick="toggleSound()" id="settings-sound">
+                    🔊 사운드: 켜짐
+                </button>
                 <button class="settings-item" onclick="logoutUser()" id="settings-logout">
                     🚪 로그아웃
                 </button>
@@ -223,7 +242,7 @@
                     🗑️ 데이터 초기화
                 </button>
                 <div class="settings-info">
-                    <p>버전 0.7 (개발 중)</p>
+                    <p>버전 0.8 (개발 중)</p>
                 </div>
             </div>
             <div class="modal-buttons">
@@ -266,9 +285,7 @@
         </div>
     </div>
 
-    <!-- 네이버 로그인 처리용 -->
     <div id="naverIdLogin" style="display:none;"></div>
-
     <script src="game.js"></script>
 </body>
 </html>
