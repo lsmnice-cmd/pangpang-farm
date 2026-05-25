@@ -27,9 +27,120 @@ body {
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* ========================================== */
+/* 로그인 화면 */
+.screen-login {
+    min-height: 500px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.screen-login.active {
+    display: flex;
+}
+
+.login-card {
+    text-align: center;
+    padding: 40px 24px;
+    max-width: 360px;
+    width: 100%;
+}
+
+.login-logo {
+    font-size: 80px;
+    margin-bottom: 12px;
+}
+
+.login-title {
+    color: #6B4423;
+    font-size: 32px;
+    margin: 0 0 8px 0;
+    font-weight: bold;
+}
+
+.login-desc {
+    color: #999;
+    font-size: 14px;
+    margin-bottom: 32px;
+    line-height: 1.5;
+}
+
+.btn-naver-login {
+    width: 100%;
+    background: #03C75A;
+    color: white;
+    border: none;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    transition: transform 0.1s, box-shadow 0.2s;
+}
+
+.btn-naver-login:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(3, 199, 90, 0.3);
+}
+
+.naver-icon {
+    background: white;
+    color: #03C75A;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 16px;
+}
+
+.btn-guest-login {
+    width: 100%;
+    background: #FFE9B0;
+    color: #6B4423;
+    border: 2px solid #F5C156;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 12px;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: transform 0.1s;
+}
+
+.btn-guest-login:hover {
+    transform: translateY(-2px);
+}
+
+.login-note {
+    color: #999;
+    font-size: 11px;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.user-info {
+    padding: 4px 8px;
+    background: rgba(107, 68, 35, 0.1);
+    border-radius: 8px;
+    font-size: 11px;
+    color: #6B4423;
+    font-weight: bold;
+}
+
+.user-info.naver {
+    background: #03C75A;
+    color: white !important;
+}
+
 /* 메인 화면 */
-/* ========================================== */
 .main-header {
     display: flex;
     justify-content: space-between;
@@ -280,9 +391,7 @@ body {
 .menu-text { flex: 1; font-size: 17px; }
 .menu-sub { font-size: 12px; opacity: 0.85; font-weight: normal; }
 
-/* ========================================== */
 /* 퍼즐 화면 */
-/* ========================================== */
 .puzzle-top {
     display: flex;
     align-items: center;
@@ -364,7 +473,6 @@ body {
     flex-shrink: 0;
 }
 
-/* 작은 농장 (퍼즐 화면 내) */
 .puzzle-mini-farm {
     position: relative;
     height: 140px;
@@ -454,22 +562,16 @@ body {
     font-size: 32px;
     line-height: 1;
     z-index: 5;
-    transition: left 2s ease-out, top 2s ease-out, transform 0.3s;
+    transition: left 2s ease-in-out, bottom 2s ease-in-out, transform 0.3s;
     filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2));
     left: 20px;
     bottom: 8px;
     pointer-events: auto;
 }
 
-.puzzle-active-spot.adult {
-    font-size: 44px;
-}
-
+.puzzle-active-spot.adult { font-size: 44px; }
 .puzzle-active-spot.walking { animation: bob 0.3s ease-in-out infinite; }
-
-.puzzle-active-spot.chewing {
-    animation: chew 0.3s ease-in-out 3;
-}
+.puzzle-active-spot.chewing { animation: chew 0.3s ease-in-out 3; }
 
 @keyframes chew {
     0%, 100% { transform: scale(1) rotate(0); }
@@ -494,16 +596,13 @@ body {
     100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 
-.dropped-crop.eaten {
-    animation: cropEaten 0.25s ease-out forwards;
-}
+.dropped-crop.eaten { animation: cropEaten 0.25s ease-out forwards; }
 
 @keyframes cropEaten {
     0% { transform: scale(1); opacity: 1; }
     100% { transform: scale(0); opacity: 0; }
 }
 
-/* 게임판 (축소) */
 .board-wrapper {
     position: relative;
     max-width: 360px;
@@ -559,9 +658,7 @@ body {
     animation: wiggle 0.5s ease-in-out infinite;
 }
 
-.cell.hint-blink {
-    animation: hintBlink 0.6s ease-in-out infinite;
-}
+.cell.hint-blink { animation: hintBlink 0.6s ease-in-out infinite; }
 
 @keyframes hintBlink {
     0%, 100% { background: #FFF8E7; box-shadow: inset 0 -2px 0 rgba(107, 68, 35, 0.08); }
@@ -627,10 +724,7 @@ body {
     animation: scoreFloat 0.9s ease-out forwards;
 }
 
-.score-popup.combo {
-    color: #FF1744;
-    font-size: 18px;
-}
+.score-popup.combo { color: #FF1744; font-size: 18px; }
 
 @keyframes scoreFloat {
     0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
@@ -638,10 +732,7 @@ body {
     100% { transform: translate(-50%, -50px) scale(1); opacity: 0; }
 }
 
-/* 타이머 게이지 */
-.timer-gauge-wrap {
-    margin-bottom: 8px;
-}
+.timer-gauge-wrap { margin-bottom: 8px; }
 
 .timer-gauge-label {
     text-align: center;
@@ -690,16 +781,13 @@ body {
     transition: transform 0.1s;
 }
 
+.btn-hint.hint-paid { background: linear-gradient(135deg, #FF8C42, #FF6B6B); }
 .btn-hint:disabled { background: #ccc; cursor: not-allowed; }
 .btn-hint:not(:disabled):hover { transform: translateY(-2px); }
 
-/* ========================================== */
 /* 결과 화면 */
-/* ========================================== */
 .screen-result { padding: 20px 0; }
-
 .result-card { text-align: center; padding: 32px 24px; }
-
 .result-emoji { font-size: 72px; margin-bottom: 12px; }
 
 .result-card h2 {
@@ -770,9 +858,7 @@ body {
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
-/* ========================================== */
 /* 모달 */
-/* ========================================== */
 .modal-overlay {
     display: none;
     position: fixed;
@@ -903,10 +989,3 @@ body {
 }
 
 .settings-info { color: #999; font-size: 12px; margin-top: 12px; }
-.btn-hint.hint-paid {
-    background: linear-gradient(135deg, #FF8C42, #FF6B6B);
-}
-
-.btn-hint.hint-paid::before {
-    content: '⏰ ';
-}

@@ -5,14 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>팡팡 농장</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://static.nid.naver.com/js/naveridlogin_js_sdk_2.0.2.js" charset="utf-8"></script>
 </head>
 <body>
     <div class="game-container">
+        <!-- 로그인 화면 (첫 접속) -->
+        <div class="screen screen-login active" id="screen-login">
+            <div class="login-card">
+                <div class="login-logo">🌾</div>
+                <h1 class="login-title">팡팡 농장</h1>
+                <p class="login-desc">동물을 키워서 룰렛으로<br>실제 상품을 받아가세요!</p>
+                
+                <button class="btn-naver-login" onclick="loginWithNaver()">
+                    <span class="naver-icon">N</span>
+                    <span>네이버로 로그인</span>
+                </button>
+                
+                <button class="btn-guest-login" onclick="loginAsGuest()">
+                    👤 게스트로 시작 (이 기기에서만)
+                </button>
+                
+                <p class="login-note">
+                    * 네이버 로그인 시 다른 기기에서도 이어서 가능<br>
+                    * 룰렛 당첨 시 스마트스토어 연락처로 안내
+                </p>
+            </div>
+        </div>
+
         <!-- 메인 화면 -->
-        <div class="screen screen-main active" id="screen-main">
+        <div class="screen screen-main" id="screen-main">
             <header class="main-header">
                 <h1>🌾 팡팡 농장</h1>
                 <div class="header-right">
+                    <div class="user-info" id="user-info">
+                        <span id="user-name-display">게스트</span>
+                    </div>
                     <div class="heart-box">
                         <span>❤️</span>
                         <span id="heart-count-main">3</span>
@@ -59,7 +86,6 @@
 
         <!-- 퍼즐 화면 -->
         <div class="screen screen-puzzle" id="screen-puzzle">
-            <!-- 상단 통합 헤더: 뒤로 / 동물정보 / 타이머 -->
             <div class="puzzle-top">
                 <button class="btn-back" onclick="confirmExitPuzzle()">←</button>
                 <div class="puzzle-top-center">
@@ -79,7 +105,6 @@
                 </div>
             </div>
 
-            <!-- 작은 농장 (활성 동물 + 들판) -->
             <div class="puzzle-mini-farm" id="puzzle-mini-farm">
                 <div class="sky"></div>
                 <div class="puzzle-mini-grass"></div>
@@ -88,13 +113,11 @@
                 <div class="puzzle-active-spot" id="puzzle-active-spot">🐤</div>
             </div>
 
-            <!-- 게임판 (축소) -->
             <div class="board-wrapper">
                 <div id="board" class="board"></div>
                 <div id="fly-layer" class="fly-layer"></div>
             </div>
 
-            <!-- 타이머 게이지 -->
             <div class="timer-gauge-wrap">
                 <div class="timer-gauge-label">
                     ⏱️ <span id="timer-text">2:00</span>
@@ -104,9 +127,8 @@
                 </div>
             </div>
 
-            <!-- 힌트 버튼 -->
             <button class="btn-hint" onclick="useHint()">
-                💡 힌트 (-60초)
+                💡 힌트 (3/3)
             </button>
         </div>
 
@@ -194,11 +216,14 @@
         <div class="modal">
             <h2>⚙️ 설정</h2>
             <div class="settings-list">
+                <button class="settings-item" onclick="logoutUser()" id="settings-logout">
+                    🚪 로그아웃
+                </button>
                 <button class="settings-item" onclick="confirmReset()">
                     🗑️ 데이터 초기화
                 </button>
                 <div class="settings-info">
-                    <p>버전 0.6 (개발 중)</p>
+                    <p>버전 0.7 (개발 중)</p>
                 </div>
             </div>
             <div class="modal-buttons">
@@ -240,6 +265,9 @@
             </div>
         </div>
     </div>
+
+    <!-- 네이버 로그인 처리용 -->
+    <div id="naverIdLogin" style="display:none;"></div>
 
     <script src="game.js"></script>
 </body>

@@ -1,25 +1,118 @@
 // ============================================
-// 백엔드 (Google Apps Script) 연동
+// 네이버 로그인 설정
+// ============================================
+const NAVER_CLIENT_ID = 'F4KAOrNX_NAYeUvnbEgI';
+const NAVER_CALLBACK_URL = window.location.origin + window.location.pathname;
+
+let naverLogin = null;
+let currentUser = null;
+
+function initNaverLogin() {
+    if (typeof naver === 'undefined') {
+        console.warn('네이버 SDK 로드 실패');
+        return;
+    }
+    naverLogin = new naver.LoginWithNaverId({
+        clientId: NAVER_CLIENT_ID,
+        callbackUrl: NAVER_CALLBACK_URL,
+        callbackHandle: true,
+        isPopup: false,
+        loginButton: { color: "green", type: 3, height: 50 }
+    });
+    naverLogin.init();
+    
+    naverLogin.getLoginStatus(function(status) {
+        if (status) {
+            const profile = naverLogin.user;
+            currentUser = {
+                id: 'naver_' + profile.getId(),
+                name: profile.getName() || profile.getEmail() || '네이버회원',
+                email: profile.getEmail() || '',
+                type: 'naver'
+            };
+            localStorage.setItem('pangpang-user', JSON.stringify(currentUser));
+            console.log('✅ 네이버 로그인 성공:', currentUser);
+            afterLogin();
+        }
+    });
+}
+
+function loginWithNaver() {
+    if (!naverLogin) {
+        alert('네이버 로그인 준비 중이에요. 잠시 후 다시 시도해주세요.');
+        return;
+    }
+    const naverBtn = document.querySelector('#naverIdLogin a');
+    if (naverBtn) {
+        naverBtn.click();
+    } else {
+        const state = Math.random().toString(36).slice(2);
+        const url = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${NAVER_CLIENT_ID}&redirect_uri=${encodeURIComponent(NAVER_CALLBACK_URL)}&state=${state}`;
+        window.location.href = url;
+    }
+}
+
+function loginAsGuest() {
+    let guestId = localStorage.getItem('pangpang-guest-id');
+    if (!guestId) {
+        guestId = 'guest_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+        localStorage.setItem('pangpang-guest-id', guestId);
+    }
+    currentUser = {
+        id: guestId,
+        name: '게스트',
+        type: 'guest'
+    };
+    localStorage.setItem('pangpang-user', JSON.stringify(currentUser));
+    console.log('👤 게스트 모드 시작:', currentUser);
+    afterLogin();
+}
+
+function logoutUser() {
+    if (confirm('정말 로그아웃할까요?\n진행 데이터는 서버에 저장되어 있어요.')) {
+        localStorage.removeItem('pangpang-user');
+        currentUser = null;
+        location.reload();
+    }
+}
+
+function afterLogin() {
+    const nameEl = document.getElementById('user-name-display');
+    const userInfo = document.getElementById('user-info');
+    if (nameEl && currentUser) {
+        nameEl.textContent = currentUser.name;
+        if (currentUser.type === 'naver') {
+            userInfo.classList.add('naver');
+        } else {
+            userInfo.classList.remove('naver');
+        }
+    }
+    bootGame();
+}
+
+// ============================================
+// 백엔드 연동
 // ============================================
 const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbyLv8diy8EwsdaNl_lkEza3U2gkHqudkrxzVMPC_VM9tOhcovikesaK-E3frY-77JA/exec';
 
-function getOrCreateUserId() {
-    let uid = localStorage.getItem('pangpang-user-id');
-    if (!uid) {
-        uid = 'user_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-        localStorage.setItem('pangpang-user-id', uid);
-    }
-    return uid;
+function getUserId() {
+    return currentUser ? currentUser.id : null;
+}
+
+function getUserName() {
+    return currentUser ? currentUser.name : '게스트';
 }
 
 async function saveToBackend(state) {
+    const uid = getUserId();
+    if (!uid) return;
     try {
         const res = await fetch(BACKEND_URL, {
             method: 'POST',
             body: JSON.stringify({
                 action: 'save',
-                userId: getOrCreateUserId(),
-                name: (farmAnimals[0] && farmAnimals[0].name) || '',
+                userId: uid,
+                name: getUserName(),
                 data: state
             })
         });
@@ -27,20 +120,19 @@ async function saveToBackend(state) {
         console.log('💾 백엔드 저장:', json);
         return json;
     } catch (e) {
-        console.warn('백엔드 저장 실패 (로컬은 정상)', e);
+        console.warn('백엔드 저장 실패', e);
     }
 }
 
 async function loadFromBackend() {
+    const uid = getUserId();
+    if (!uid) return null;
     try {
-        const uid = getOrCreateUserId();
         const url = BACKEND_URL + '?action=load&userId=' + encodeURIComponent(uid);
         const res = await fetch(url);
         const json = await res.json();
         console.log('📥 백엔드 불러옴:', json);
-        if (json.ok && json.data) {
-            return json.data;
-        }
+        if (json.ok && json.data) return json.data;
         return null;
     } catch (e) {
         console.warn('백엔드 불러오기 실패', e);
@@ -49,13 +141,15 @@ async function loadFromBackend() {
 }
 
 async function recordWinToBackend(animal, reward) {
+    const uid = getUserId();
+    if (!uid) return;
     try {
         await fetch(BACKEND_URL, {
             method: 'POST',
             body: JSON.stringify({
                 action: 'win',
-                userId: getOrCreateUserId(),
-                name: animal.name,
+                userId: uid,
+                name: getUserName(),
                 animalStage: animal.stage,
                 rewardLabel: reward.label,
                 rewardType: reward.type,
@@ -74,15 +168,15 @@ async function recordWinToBackend(animal, reward) {
 const BOARD_SIZE = 6;
 
 const ALL_CROPS = [
-    { id: 'apple',     emoji: '🍎', name: '사과' },
-    { id: 'banana',    emoji: '🍌', name: '바나나' },
-    { id: 'tomato',    emoji: '🍅', name: '토마토' },
-    { id: 'corn',      emoji: '🌽', name: '옥수수' },
-    { id: 'cucumber',  emoji: '🥒', name: '오이' },
-    { id: 'eggplant',  emoji: '🍆', name: '가지' },
-    { id: 'onion',     emoji: '🧅', name: '양파' },
-    { id: 'grape',     emoji: '🍇', name: '포도' },
-    { id: 'garlic',    emoji: '🧄', name: '마늘' }
+    { id: 'apple', emoji: '🍎', name: '사과' },
+    { id: 'banana', emoji: '🍌', name: '바나나' },
+    { id: 'tomato', emoji: '🍅', name: '토마토' },
+    { id: 'corn', emoji: '🌽', name: '옥수수' },
+    { id: 'cucumber', emoji: '🥒', name: '오이' },
+    { id: 'eggplant', emoji: '🍆', name: '가지' },
+    { id: 'onion', emoji: '🧅', name: '양파' },
+    { id: 'grape', emoji: '🍇', name: '포도' },
+    { id: 'garlic', emoji: '🧄', name: '마늘' }
 ];
 
 const CROPS_BY_STAGE = {
@@ -168,7 +262,7 @@ let currentRewards = [];
 let chosenRewardIndex = -1;
 let activeWanderInterval = null;
 
-// DOM
+const screenLogin = document.getElementById('screen-login');
 const screenMain = document.getElementById('screen-main');
 const screenPuzzle = document.getElementById('screen-puzzle');
 const screenResult = document.getElementById('screen-result');
@@ -188,20 +282,14 @@ const cloudsMain = document.getElementById('clouds-main');
 const starsMain = document.getElementById('stars-main');
 const timeTextMain = document.getElementById('time-text-main');
 
-// ============================================
-// 저장/불러오기
-// ============================================
 function saveState() {
-    const state = {
-        farmAnimals, activeAnimalId, hearts,
-        dailyEatenToday, lastResetDate
-    };
-    localStorage.setItem('pangpang-farm-v4', JSON.stringify(state));
+    const state = { farmAnimals, activeAnimalId, hearts, dailyEatenToday, lastResetDate };
+    localStorage.setItem('pangpang-farm-v5', JSON.stringify(state));
     saveToBackend(state);
 }
 
-function loadState() {
-    const raw = localStorage.getItem('pangpang-farm-v4');
+function loadLocalState() {
+    const raw = localStorage.getItem('pangpang-farm-v5');
     if (!raw) return false;
     try {
         const s = JSON.parse(raw);
@@ -212,20 +300,17 @@ function loadState() {
         lastResetDate = s.lastResetDate || '';
         return true;
     } catch (e) {
-        console.error('저장 불러오기 실패', e);
         return false;
     }
 }
 
 function resetAllData() {
-    localStorage.removeItem('pangpang-farm-v4');
-    localStorage.removeItem('pangpang-user-id');
+    localStorage.removeItem('pangpang-farm-v5');
+    localStorage.removeItem('pangpang-user');
+    localStorage.removeItem('pangpang-guest-id');
     location.reload();
 }
 
-// ============================================
-// 일일 리셋
-// ============================================
 function getKoreaTime() {
     const now = new Date();
     const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
@@ -243,9 +328,6 @@ function checkDailyReset() {
     }
 }
 
-// ============================================
-// 시간대 배경
-// ============================================
 function updateSkyByTime() {
     const korea = getKoreaTime();
     const hour = korea.getHours();
@@ -253,8 +335,7 @@ function updateSkyByTime() {
     const hourFloat = hour + minute / 60;
 
     if (timeTextMain) {
-        timeTextMain.textContent =
-            String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
+        timeTextMain.textContent = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
     }
 
     const SUNRISE = 6, SUNSET = 18;
@@ -320,21 +401,16 @@ function createStars() {
     }
 }
 
-// ============================================
-// 화면 전환
-// ============================================
 function showScreen(name) {
-    [screenMain, screenPuzzle, screenResult].forEach(s => {
+    [screenLogin, screenMain, screenPuzzle, screenResult].forEach(s => {
         if (s) s.classList.remove('active');
     });
+    if (name === 'login') screenLogin.classList.add('active');
     if (name === 'main') screenMain.classList.add('active');
     if (name === 'puzzle') screenPuzzle.classList.add('active');
     if (name === 'result') screenResult.classList.add('active');
 }
 
-// ============================================
-// 동물 관리
-// ============================================
 function generateAnimalId() {
     return 'a' + Date.now() + Math.floor(Math.random() * 1000);
 }
@@ -366,13 +442,9 @@ function getAnimalStageName(animal) {
     return animal.level >= MAX_LEVEL ? s.adultName : s.babyName;
 }
 
-// ============================================
-// 큰 농장 렌더링
-// ============================================
 function renderBigFarm() {
     if (!bigAnimalsContainer) return;
     bigAnimalsContainer.innerHTML = '';
-
     const farmEl = document.getElementById('big-farm');
     if (!farmEl) return;
     const farmWidth = farmEl.clientWidth;
@@ -414,7 +486,6 @@ function renderBigFarm() {
         el.appendChild(tag);
 
         el.addEventListener('click', () => onBigAnimalClick(animal.id));
-
         bigAnimalsContainer.appendChild(el);
     });
 
@@ -429,14 +500,6 @@ function onBigAnimalClick(id) {
     } else {
         activeAnimalId = id;
         saveState();
-        const el = bigAnimalsContainer.querySelector(`[data-animal-id="${id}"]`);
-        if (el) {
-            el.style.transition = 'transform 0.3s';
-            el.style.transform = (animal.facingRight ? 'scaleX(1)' : 'scaleX(-1)') + ' translateY(-8px)';
-            setTimeout(() => {
-                el.style.transform = animal.facingRight ? 'scaleX(1)' : 'scaleX(-1)';
-            }, 300);
-        }
     }
 }
 
@@ -482,9 +545,6 @@ function stopBigFarmWandering() {
     }
 }
 
-// ============================================
-// 첫 접속
-// ============================================
 function startFirstTime() {
     document.getElementById('name-overlay').classList.add('active');
     const input = document.getElementById('animal-name-input');
@@ -511,9 +571,6 @@ function confirmName() {
     enterMain();
 }
 
-// ============================================
-// 메인
-// ============================================
 function enterMain() {
     showScreen('main');
     updateHeartUI();
@@ -530,9 +587,6 @@ function updateHeartUI() {
     if (heartCountMain) heartCountMain.textContent = hearts;
 }
 
-// ============================================
-// 퍼즐 시작
-// ============================================
 function goToPuzzle() {
     if (!activeAnimalId || !getActiveAnimal() || getActiveAnimal().level >= MAX_LEVEL) {
         const growing = farmAnimals.find(a => a.level < MAX_LEVEL);
@@ -540,7 +594,7 @@ function goToPuzzle() {
             activeAnimalId = growing.id;
         } else {
             if (farmAnimals.length >= MAX_FARM_SLOTS) {
-                alert('농장이 꽉 찼어요! 동물 하나를 룰렛/승급으로 보내주세요');
+                alert('농장이 꽉 찼어요!');
                 return;
             }
             const newBaby = createNewBabyChicken('병아리' + (farmAnimals.length + 1));
@@ -563,7 +617,6 @@ function goToPuzzle() {
     hearts--;
     saveState();
     updateHeartUI();
-
     startPuzzleSession();
 }
 
@@ -607,7 +660,6 @@ function initActiveAnimalPosition() {
 function updatePuzzleUI() {
     const active = getActiveAnimal();
     if (!active) return;
-
     updateHintButton();
 
     const animalEl = document.getElementById('puzzle-active-spot');
@@ -632,9 +684,6 @@ function updatePuzzleUI() {
     }
 }
 
-// ============================================
-// 타이머
-// ============================================
 function startTimer() {
     stopTimer();
     updateTimerDisplay();
@@ -655,9 +704,7 @@ function stopTimer() {
 function updateTimerDisplay() {
     const min = Math.floor(puzzleTimer / 60);
     const sec = puzzleTimer % 60;
-    if (timerText) {
-        timerText.textContent = min + ':' + String(sec).padStart(2, '0');
-    }
+    if (timerText) timerText.textContent = min + ':' + String(sec).padStart(2, '0');
     if (timerGaugeFill) {
         const percent = Math.max(0, Math.min(100, (puzzleTimer / INITIAL_TIME) * 100));
         timerGaugeFill.style.width = percent + '%';
@@ -673,9 +720,6 @@ function addTime(seconds) {
     updateTimerDisplay();
 }
 
-// ============================================
-// 힌트
-// ============================================
 function useHint() {
     if (isLocked) return;
     if (puzzleTimer <= 0) return;
@@ -733,26 +777,19 @@ function findHintCandidates() {
                 swap(row, col, row, col + 1);
                 const matches = findMatches();
                 swap(row, col, row, col + 1);
-                if (matches.length > 0) {
-                    results.push([{row, col}, {row, col: col + 1}]);
-                }
+                if (matches.length > 0) results.push([{row, col}, {row, col: col + 1}]);
             }
             if (row < BOARD_SIZE - 1) {
                 swap(row, col, row + 1, col);
                 const matches = findMatches();
                 swap(row, col, row + 1, col);
-                if (matches.length > 0) {
-                    results.push([{row, col}, {row: row + 1, col}]);
-                }
+                if (matches.length > 0) results.push([{row, col}, {row: row + 1, col}]);
             }
         }
     }
     return results;
 }
 
-// ============================================
-// 보드
-// ============================================
 function getCurrentCrops() {
     const active = getActiveAnimal();
     const stage = active ? active.stage : 'chicken';
@@ -916,12 +953,9 @@ function processMatches() {
         }
     });
 
-    // 매치 1번 = 작물 1개만 떨어짐
     if (matchData[0] && matchData[0].crop) {
         const firstCell = boardElement.children[matchData[0].row * BOARD_SIZE + matchData[0].col];
-        if (firstCell) {
-            dropCropToField(firstCell, matchData[0].crop);
-        }
+        if (firstCell) dropCropToField(firstCell, matchData[0].crop);
     }
 
     grantExpToActive(expGain);
@@ -963,10 +997,8 @@ function checkEndConditions() {
 function grantExpToActive(amount) {
     const active = getActiveAnimal();
     if (!active || active.level >= MAX_LEVEL) return;
-
     const allowed = DAILY_EXP_LIMIT - dailyEatenToday;
     if (allowed <= 0) return;
-
     const grant = Math.min(amount, allowed);
     dailyEatenToday += grant;
     active.exp += grant;
@@ -981,7 +1013,6 @@ function grantExpToActive(amount) {
         } else break;
     }
     if (active.level >= MAX_LEVEL) active.exp = 0;
-
     saveState();
     updatePuzzleUI();
 }
@@ -998,30 +1029,20 @@ function showLevelUpEffect(animal) {
     setTimeout(() => popup.remove(), 1200);
 }
 
-// ============================================
-// 작물 → 들판 → 동물이 먹으러 감
-// ============================================
 function dropCropToField(cell, crop) {
     const farmEl = document.getElementById('puzzle-mini-farm');
     const dropsLayer = document.getElementById('dropped-crops-layer');
     if (!farmEl || !dropsLayer) return;
 
     const cellRect = cell.getBoundingClientRect();
-    const farmRect = farmEl.getBoundingClientRect();
     const dropsRect = dropsLayer.getBoundingClientRect();
-
     const startX = cellRect.left + cellRect.width / 2 - 13;
     const startY = cellRect.top + cellRect.height / 2 - 13;
-
-    const padX = 20;
-    const padBottom = 8;
-    const padTop = 20;
+    const padX = 20, padBottom = 8, padTop = 20;
     const dropAreaWidth = dropsRect.width - padX * 2;
     const dropAreaHeight = dropsRect.height - padBottom - padTop;
-
     const randXInLayer = padX + Math.random() * dropAreaWidth;
     const randYInLayer = padTop + Math.random() * dropAreaHeight;
-
     const endX = dropsRect.left + randXInLayer;
     const endY = dropsRect.top + randYInLayer;
 
@@ -1046,16 +1067,8 @@ function dropCropToField(cell, crop) {
         dropped.style.left = (randXInLayer - 11) + 'px';
         dropped.style.top = (randYInLayer - 11) + 'px';
         dropsLayer.appendChild(dropped);
-
-        droppedCropQueue.push({
-            element: dropped,
-            xInLayer: randXInLayer,
-            yInLayer: randYInLayer
-        });
-
-        if (!animalIsMovingToFood) {
-            eatNextDroppedCrop();
-        }
+        droppedCropQueue.push({ element: dropped, xInLayer: randXInLayer, yInLayer: randYInLayer });
+        if (!animalIsMovingToFood) eatNextDroppedCrop();
     }, 600);
 }
 
@@ -1064,7 +1077,6 @@ function eatNextDroppedCrop() {
         animalIsMovingToFood = false;
         return;
     }
-
     animalIsMovingToFood = true;
     const next = droppedCropQueue.shift();
     const animal = document.getElementById('puzzle-active-spot');
@@ -1077,17 +1089,13 @@ function eatNextDroppedCrop() {
 
     const farmEl = document.getElementById('puzzle-mini-farm');
     const farmRect = farmEl.getBoundingClientRect();
-
     const dropsLayerTopInFarm = farmRect.height * 0.25;
     const targetXInFarm = next.xInLayer - 10;
     const targetYInFarm = dropsLayerTopInFarm + next.yInLayer;
     const targetBottom = farmRect.height - targetYInFarm - 20;
 
-    if (targetXInFarm > activePosX) {
-        animal.style.transform = 'scaleX(1)';
-    } else if (targetXInFarm < activePosX) {
-        animal.style.transform = 'scaleX(-1)';
-    }
+    if (targetXInFarm > activePosX) animal.style.transform = 'scaleX(1)';
+    else if (targetXInFarm < activePosX) animal.style.transform = 'scaleX(-1)';
 
     activePosX = targetXInFarm;
     activePosY = Math.max(4, targetBottom);
@@ -1099,7 +1107,6 @@ function eatNextDroppedCrop() {
     setTimeout(() => {
         animal.classList.remove('walking');
         animal.classList.add('chewing');
-
         setTimeout(() => {
             animal.classList.remove('chewing');
             if (next.element) {
@@ -1118,7 +1125,6 @@ function startActiveAnimalWandering() {
     activeWanderInterval = setInterval(() => {
         if (!screenPuzzle.classList.contains('active')) return;
         if (animalIsMovingToFood) return;
-
         const animal = document.getElementById('puzzle-active-spot');
         const farmEl = document.getElementById('puzzle-mini-farm');
         if (!animal || !farmEl) return;
@@ -1127,7 +1133,6 @@ function startActiveAnimalWandering() {
         const farmHeight = farmEl.clientHeight;
         const grassTopFromBottom = farmHeight * 0.75 - 30;
         const grassBottomFromBottom = 5;
-
         const targetX = 15 + Math.random() * (farmWidth - 50);
         const targetBottom = grassBottomFromBottom + Math.random() * (grassTopFromBottom - grassBottomFromBottom);
 
@@ -1162,7 +1167,6 @@ function spawnParticles(cell) {
     const wrap = flyLayer.getBoundingClientRect();
     const cx = cellRect.left - wrap.left + cellRect.width / 2 - 4;
     const cy = cellRect.top - wrap.top + cellRect.height / 2 - 4;
-
     for (let i = 0; i < 6; i++) {
         const p = document.createElement('div');
         p.className = 'particle';
@@ -1229,9 +1233,6 @@ function fillEmpty() {
     }
 }
 
-// ============================================
-// 세션 종료 → 결과
-// ============================================
 function endPuzzleSession(reason) {
     stopTimer();
     stopActiveAnimalWandering();
@@ -1240,13 +1241,11 @@ function endPuzzleSession(reason) {
     if (dropsLayer) dropsLayer.innerHTML = '';
     droppedCropQueue = [];
     animalIsMovingToFood = false;
-
     showResultScreen(reason);
 }
 
 function showResultScreen(reason) {
     showScreen('result');
-
     const emojiEl = document.getElementById('result-screen-emoji');
     const titleEl = document.getElementById('result-screen-title');
 
@@ -1286,13 +1285,9 @@ function exitToMain() {
     endPuzzleSession('exit');
 }
 
-// ============================================
-// Lv.10 모달
-// ============================================
 function showAdultPopup(animal) {
     isLocked = true;
     stopTimer();
-
     const s = STAGES[animal.stage];
     document.getElementById('modal-emoji').textContent = s.adultEmoji;
     document.getElementById('modal-title').textContent =
@@ -1326,21 +1321,16 @@ function chooseCompanion() {
     closeAdultModal();
     activeAnimalId = null;
     saveState();
-    if (screenPuzzle.classList.contains('active')) {
-        endPuzzleSession('timeout');
-    } else {
-        renderBigFarm();
-    }
+    if (screenPuzzle.classList.contains('active')) endPuzzleSession('timeout');
+    else renderBigFarm();
 }
 
 function chooseUpgrade() {
     const id = document.getElementById('modal-overlay').dataset.targetId;
     const animal = farmAnimals.find(a => a.id === id);
     if (!animal) return;
-
     const s = STAGES[animal.stage];
     if (!s.nextStage) return;
-
     animal.stage = s.nextStage;
     animal.level = 1;
     animal.exp = 0;
@@ -1348,12 +1338,8 @@ function chooseUpgrade() {
     closeAdultModal();
     activeAnimalId = animal.id;
     saveState();
-
-    if (screenPuzzle.classList.contains('active')) {
-        endPuzzleSession('timeout');
-    } else {
-        renderBigFarm();
-    }
+    if (screenPuzzle.classList.contains('active')) endPuzzleSession('timeout');
+    else renderBigFarm();
 }
 
 function chooseRoulette() {
@@ -1366,9 +1352,6 @@ function closeAdultModal() {
     isLocked = false;
 }
 
-// ============================================
-// 룰렛
-// ============================================
 function showRoulette() {
     const id = document.getElementById('modal-overlay').dataset.targetId;
     const animal = farmAnimals.find(a => a.id === id);
@@ -1441,10 +1424,8 @@ function spinRoulette() {
     const r = document.getElementById('roulette-svg');
     r.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.21, 1)';
     r.style.transform = 'rotate(' + totalRot + 'deg)';
-
     document.getElementById('btn-spin').disabled = true;
     document.getElementById('btn-spin').textContent = '돌아가는 중...';
-
     setTimeout(() => showPrize(), 4200);
 }
 
@@ -1463,19 +1444,14 @@ function showPrize() {
         document.getElementById('prize-title').textContent = '🎉 축하합니다!';
         document.getElementById('prize-label').textContent = reward.label;
         if (reward.type === 'coupon') {
-            document.getElementById('prize-desc').textContent =
-                '쿠폰은 스마트스토어에서\n일괄 발급됩니다.';
+            document.getElementById('prize-desc').textContent = '쿠폰은 스마트스토어에서\n일괄 발급됩니다.';
         } else if (reward.type === 'product') {
-            document.getElementById('prize-desc').textContent =
-                '실물 상품 당첨!\n별도 연락드릴게요.';
+            document.getElementById('prize-desc').textContent = '실물 상품 당첨!\n별도 연락드릴게요.';
         }
     }
 
     if (animal) {
-        // 백엔드에 당첨 기록 (꽝 제외)
-        if (reward.type !== 'miss') {
-            recordWinToBackend(animal, reward);
-        }
+        if (reward.type !== 'miss') recordWinToBackend(animal, reward);
         farmAnimals = farmAnimals.filter(a => a.id !== animal.id);
         if (activeAnimalId === animal.id) activeAnimalId = null;
         saveState();
@@ -1484,29 +1460,23 @@ function showPrize() {
     document.getElementById('roulette-overlay').classList.remove('active');
     document.getElementById('prize-overlay').classList.add('active');
 
-    console.log('🎯 당첨 결과:', {
+    console.log('🎯 당첨:', {
+        userId: getUserId(),
+        userName: getUserName(),
         animalName: animal ? animal.name : '?',
         stage: animal ? animal.stage : '?',
         rewardLabel: reward.label,
-        rewardType: reward.type,
-        rewardValue: reward.value,
-        timestamp: new Date().toISOString()
+        rewardType: reward.type
     });
 }
 
 function closePrize() {
     document.getElementById('prize-overlay').classList.remove('active');
     chosenRewardIndex = -1;
-    if (screenPuzzle.classList.contains('active')) {
-        endPuzzleSession('timeout');
-    } else {
-        renderBigFarm();
-    }
+    if (screenPuzzle.classList.contains('active')) endPuzzleSession('timeout');
+    else renderBigFarm();
 }
 
-// ============================================
-// 모달 닫기
-// ============================================
 function closeNoHeart() {
     document.getElementById('no-heart-overlay').classList.remove('active');
 }
@@ -1529,13 +1499,8 @@ function confirmReset() {
     }
 }
 
-// ============================================
-// 부팅
-// ============================================
-async function boot() {
-    const loaded = loadState();
-    
-    // 백엔드에서 더 최신 데이터 시도
+async function bootGame() {
+    const localOk = loadLocalState();
     const serverData = await loadFromBackend();
     if (serverData) {
         farmAnimals = serverData.farmAnimals || [];
@@ -1543,19 +1508,43 @@ async function boot() {
         hearts = serverData.hearts !== undefined ? serverData.hearts : 3;
         dailyEatenToday = serverData.dailyEatenToday || 0;
         lastResetDate = serverData.lastResetDate || '';
-        console.log('✅ 서버에서 데이터 복원됨');
+        console.log('✅ 서버 데이터 복원');
     }
-    
+
     checkDailyReset();
     createStars();
     updateSkyByTime();
     setInterval(updateSkyByTime, 60000);
 
-    if ((!loaded && !serverData) || farmAnimals.length === 0) {
+    if ((!localOk && !serverData) || farmAnimals.length === 0) {
+        showScreen('main');
+        renderBigFarm();
+        startBigFarmWandering();
         startFirstTime();
     } else {
         enterMain();
     }
 }
 
-boot();
+function init() {
+    const savedUser = localStorage.getItem('pangpang-user');
+    if (savedUser) {
+        try {
+            currentUser = JSON.parse(savedUser);
+            console.log('💾 로그인 복원:', currentUser);
+            afterLogin();
+        } catch (e) {
+            showScreen('login');
+        }
+    } else {
+        showScreen('login');
+    }
+
+    setTimeout(() => initNaverLogin(), 500);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
