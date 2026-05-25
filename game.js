@@ -113,6 +113,7 @@ async function saveToBackend(state) {
                 action: 'save',
                 userId: uid,
                 name: getUserName(),
+                email: (currentUser && currentUser.email) || '',
                 data: state
             })
         });
@@ -124,6 +125,8 @@ async function saveToBackend(state) {
     }
 }
 
+let testMode = false;  // 테스트 모드 (스프레드시트 F열로 제어)
+
 async function loadFromBackend() {
     const uid = getUserId();
     if (!uid) return null;
@@ -132,6 +135,15 @@ async function loadFromBackend() {
         const res = await fetch(url);
         const json = await res.json();
         console.log('📥 백엔드 불러옴:', json);
+        
+        // 테스트 모드 체크
+        if (json.mode === '테스트') {
+            testMode = true;
+            console.log('🧪 테스트 모드 활성화! EXP 100배');
+        } else {
+            testMode = false;
+        }
+        
         if (json.ok && json.data) return json.data;
         return null;
     } catch (e) {
@@ -150,6 +162,7 @@ async function recordWinToBackend(animal, reward) {
                 action: 'win',
                 userId: uid,
                 name: getUserName(),
+                email: (currentUser && currentUser.email) || '',
                 animalStage: animal.stage,
                 rewardLabel: reward.label,
                 rewardType: reward.type,
@@ -1120,6 +1133,14 @@ function checkEndConditions() {
 function grantExpToActive(amount) {
     const active = getActiveAnimal();
     if (!active || active.level >= MAX_LEVEL) return;
+    
+    // 테스트 모드면 EXP 100배 + 한도 무시
+    if (testMode) {
+        amount = amount * 100;
+        // 일일 한도 무시
+        dailyEatenToday = 0;
+    }
+    
     const allowed = DAILY_EXP_LIMIT - dailyEatenToday;
     if (allowed <= 0) return;
     const grant = Math.min(amount, allowed);
