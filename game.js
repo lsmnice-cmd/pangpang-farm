@@ -466,7 +466,7 @@ const DAILY_HEARTS = 3;
 const MAX_FARM_SLOTS = 5;
 const DAILY_EXP_LIMIT = 1800;
 const MATCH_BASE_EXP = 5;
-const INITIAL_TIME = 120;
+const INITIAL_TIME = 90;
 const HINT_FREE_COUNT = 3;
 const HINT_TIME_COST = 30;
 const TIME_PER_MATCH = 1;
@@ -1090,9 +1090,7 @@ function stopTimer() {
 }
 
 function updateTimerDisplay() {
-    const min = Math.floor(puzzleTimer / 60);
-    const sec = puzzleTimer % 60;
-    if (timerText) timerText.textContent = min + ':' + String(sec).padStart(2, '0');
+    if (timerText) timerText.textContent = puzzleTimer;
     if (timerGaugeFill) {
         const percent = Math.max(0, Math.min(100, (puzzleTimer / INITIAL_TIME) * 100));
         timerGaugeFill.style.width = percent + '%';
@@ -1100,7 +1098,6 @@ function updateTimerDisplay() {
         else timerGaugeFill.classList.remove('warning');
     }
 }
-
 function addTime(seconds) {
     puzzleTimer += seconds;
     if (puzzleTimer < 0) puzzleTimer = 0;
@@ -1313,7 +1310,9 @@ function processMatches() {
     if (matches.length === 0) return;
 
     comboCount++;
-    cumulativeCombo++;  // 누적 콤보 증가
+      if (comboCount >= 2) {
+        cumulativeCombo++;
+    }
     sessionMatches++;
     if (comboCount > sessionMaxCombo) sessionMaxCombo = comboCount;
     
