@@ -1094,3 +1094,198 @@ body {
     80% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
     100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
 }
+
+/* ============================================
+   로딩 / 토스트 (v0.9 추가)
+   ============================================ */
+.loading-box {
+    background: white;
+    padding: 32px 40px;
+    border-radius: 20px;
+    text-align: center;
+    animation: modalIn 0.2s ease-out;
+}
+
+.loading-box p {
+    margin: 16px 0 0 0;
+    color: #6B4423;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.spinner {
+    width: 44px;
+    height: 44px;
+    margin: 0 auto;
+    border: 5px solid #FFE9B0;
+    border-top-color: #FF8C42;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(60, 40, 20, 0.92);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: bold;
+    z-index: 300;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    max-width: 90%;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ============================================
+   마인크래프트 스타일 테마 (v0.9.1)
+   ============================================ */
+@font-face {
+    font-family: 'DungGeunMo';
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2107@1.1/DungGeunMo.woff') format('woff');
+    font-display: swap;
+}
+
+body, button, input {
+    font-family: 'DungGeunMo', 'Malgun Gothic', sans-serif;
+}
+
+/* 픽셀 스프라이트 공통: 확대해도 또렷한 도트 */
+.pix {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    display: block;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+/* 보드/셀: 각진 블록 느낌 */
+.board { border-radius: 4px; }
+.cell { border-radius: 3px; }
+.cell .pix { width: 84%; height: 84%; object-fit: contain; }
+
+/* 농장 잔디: 마인크래프트식 블록 체커보드 */
+.big-farm::after {
+    background: repeating-conic-gradient(#79C879 0% 25%, #6CBB6C 0% 50%) 0 0 / 26px 26px;
+}
+.puzzle-mini-farm::after {
+    background: repeating-conic-gradient(#79C879 0% 25%, #6CBB6C 0% 50%) 0 0 / 20px 20px;
+}
+
+/* 동물 스프라이트 크기 (기존 이모지 font-size 대체) */
+.big-animal { width: 40px; height: 40px; font-size: 0; }
+.big-animal .pix { width: 100%; height: 100%; object-fit: contain; }
+.big-animal.adult { width: 58px; height: 58px; }
+
+.puzzle-active-spot { width: 36px; height: 36px; font-size: 0; }
+.puzzle-active-spot .pix { width: 100%; height: 100%; object-fit: contain; }
+.puzzle-active-spot.adult { width: 52px; height: 52px; }
+
+.active-emoji-mini { width: 28px; height: 28px; font-size: 0; flex-shrink: 0; }
+.active-emoji-mini .pix { width: 100%; height: 100%; object-fit: contain; }
+
+.dropped-crop { width: 22px; height: 22px; font-size: 0; }
+.dropped-crop .pix { width: 100%; height: 100%; object-fit: contain; }
+
+.flying-crop .pix { width: 100%; height: 100%; object-fit: contain; }
+
+#modal-emoji .pix { width: 84px; height: 84px; margin: 0 auto 4px; object-fit: contain; }
+.login-logo .pix { width: 88px; height: 88px; margin: 0 auto 8px; object-fit: contain; }
+
+.inline-pix {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    vertical-align: middle;
+}
+
+/* 버튼: 마인크래프트식 두툼한 입체 그림자 + 눌림 효과 */
+.menu-btn, .btn-back-farm, .modal-buttons button, .btn-spin, .btn-hint,
+.btn-naver-login, .btn-guest-login {
+    border-radius: 6px;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25);
+}
+
+.menu-btn:not(:disabled):active, .btn-back-farm:active,
+.modal-buttons button:not(:disabled):active,
+.btn-spin:not(:disabled):active, .btn-hint:not(:disabled):active,
+.btn-naver-login:active, .btn-guest-login:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+}
+
+/* ============================================
+   ⚔️ 배틀 모드 (v0.10)
+   ============================================ */
+.menu-battle { background: linear-gradient(135deg, #7E57C2, #5C6BC0); }
+
+.battle-panel {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: linear-gradient(135deg, #4A3B69 0%, #2E2A4A 100%);
+    border: 2px solid #7E57C2;
+    border-radius: 10px;
+    padding: 8px 16px;
+    margin-bottom: 10px;
+    color: white;
+}
+
+/* 배틀 모드: 미니 농장/동물 정보 숨기고 점수판 표시 */
+.screen-puzzle.battle .puzzle-mini-farm { display: none; }
+.screen-puzzle.battle .puzzle-top-center { display: none; }
+.screen-puzzle.battle .battle-panel { display: flex; }
+
+.battle-panel.hit {
+    box-shadow: 0 0 0 3px #FF1744, 0 0 18px rgba(255, 23, 68, 0.8);
+    animation: battleShake 0.4s;
+}
+
+@keyframes battleShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    50% { transform: translateX(4px); }
+    75% { transform: translateX(-2px); }
+}
+
+.battle-side { text-align: center; flex: 1; min-width: 0; }
+.battle-label { font-size: 10px; opacity: 0.7; }
+.battle-name {
+    font-size: 12px;
+    font-weight: bold;
+    max-width: 120px;
+    margin: 0 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.battle-score { font-size: 26px; font-weight: bold; color: #FFD700; line-height: 1.1; }
+.battle-side.opp .battle-score { color: #FF8A80; }
+.battle-vs { font-size: 16px; font-weight: bold; color: #B39DDB; flex-shrink: 0; }
+
+/* 돌멩이 셀: 어둡고 선택 불가 */
+.cell[data-crop-id="stone"] {
+    background: #5A5A5A;
+    cursor: not-allowed;
+    box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.35);
+}
+.cell[data-crop-id="stone"]:hover {
+    transform: none;
+    background: #5A5A5A;
+}

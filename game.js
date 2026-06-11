@@ -71,6 +71,7 @@ function loginAsGuest() {
 
 function logoutUser() {
     if (confirm('정말 로그아웃할까요?\n진행 데이터는 서버에 저장되어 있어요.')) {
+        flushBackendSave();
         localStorage.removeItem('pangpang-user');
         currentUser = null;
         location.reload();
@@ -92,11 +93,14 @@ function afterLogin() {
 }
 
 // ============================================
-// 백엔드 연동
+// 백엔드 연동 (타임아웃 + 재시도 공통 레이어)
 // ============================================
 const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbyLv8diy8EwsdaNl_lkEza3U2gkHqudkrxzVMPC_VM9tOhcovikesaK-E3frY-77JA/exec';
 
-// 테스트 모드: 'EXP', '하트', 'EXP하트', '' 중 하나
+const API_TIMEOUT_MS = 12000;   // GAS 콜드스타트 감안
+const SAVE_DEBOUNCE_MS = 2500;  // 잦은 saveState 호출을 묶어서 전송
+
+// 테스트 모드: 'EXP', '하트', 'EXP하트', '' 중 하나 (서버 mode 열에서 내려옴)
 let testMode = '';
 
 function getUserId() { return currentUser ? currentUser.id : null; }
@@ -104,73 +108,181 @@ function getUserName() { return currentUser ? currentUser.name : '게스트'; }
 function isExpTest() { return testMode === 'EXP' || testMode === 'EXP하트'; }
 function isHeartTest() { return testMode === '하트' || testMode === 'EXP하트'; }
 
-async function saveToBackend(state) {
+// POST 공통 호출: 타임아웃 + 자동 재시도 + JSON 검증
+async function apiCall(payload, retries = 2) {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+        try {
+            const res = await fetch(BACKEND_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload),
+                signal: controller.signal
+            });
+            clearTimeout(timer);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const json = await res.json();
+            if (!json || typeof json !== 'object') throw new Error('invalid response');
+            return json;
+        } catch (e) {
+            clearTimeout(timer);
+            console.warn(`API 호출 실패 (${attempt + 1}/${retries + 1})`, e);
+            if (attempt < retries) {
+                await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+            }
+        }
+    }
+    return null; // 모든 재시도 실패
+}
+
+// GET 공통 호출
+async function apiGet(params, retries = 2) {
+    const qs = Object.entries(params)
+        .map(([k, v]) => k + '=' + encodeURIComponent(v))
+        .join('&');
+    const url = BACKEND_URL + '?' + qs;
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+        try {
+            const res = await fetch(url, { signal: controller.signal });
+            clearTimeout(timer);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const json = await res.json();
+            if (!json || typeof json !== 'object') throw new Error('invalid response');
+            return json;
+        } catch (e) {
+            clearTimeout(timer);
+            console.warn(`API 호출 실패 (${attempt + 1}/${retries + 1})`, e);
+            if (attempt < retries) {
+                await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+            }
+        }
+    }
+    return null;
+}
+
+// ---- 디바운스 저장: saveState가 아무리 자주 불려도 백엔드 전송은 묶어서 ----
+let saveDebounceTimer = null;
+let pendingState = null;
+let saveFailNotified = false;
+
+function scheduleBackendSave(state) {
+    pendingState = state;
+    if (saveDebounceTimer) clearTimeout(saveDebounceTimer);
+    saveDebounceTimer = setTimeout(() => flushBackendSave(), SAVE_DEBOUNCE_MS);
+}
+
+async function flushBackendSave() {
+    if (saveDebounceTimer) {
+        clearTimeout(saveDebounceTimer);
+        saveDebounceTimer = null;
+    }
+    if (!pendingState) return;
     const uid = getUserId();
-    if (!uid) return;
-    try {
-        const res = await fetch(BACKEND_URL, {
-            method: 'POST',
-            body: JSON.stringify({
-                action: 'save',
-                userId: uid,
-                name: getUserName(),
-                email: (currentUser && currentUser.email) || '',
-                data: state
-            })
-        });
-        const json = await res.json();
-        console.log('💾 백엔드 저장:', json);
-        return json;
-    } catch (e) {
-        console.warn('백엔드 저장 실패', e);
+    if (!uid) { pendingState = null; return; }
+
+    const state = pendingState;
+    pendingState = null;
+
+    const json = await apiCall({
+        action: 'save',
+        userId: uid,
+        name: getUserName(),
+        email: (currentUser && currentUser.email) || '',
+        data: state
+    }, 1);
+
+    if (!json || !json.ok) {
+        // 실패: 최신 상태가 그 사이에 안 생겼으면 되돌려놓고 나중에 재시도
+        if (!pendingState) pendingState = state;
+        if (!saveFailNotified) {
+            saveFailNotified = true;
+            showToast('⚠️ 서버 저장이 지연되고 있어요. 자동으로 다시 시도할게요.');
+        }
+        setTimeout(() => flushBackendSave(), 10000);
+    } else {
+        saveFailNotified = false;
+        console.log('💾 백엔드 저장 완료');
     }
 }
+
+// 페이지를 떠날 때 미전송분 마지막 전송 시도
+window.addEventListener('beforeunload', () => {
+    if (pendingState && getUserId() && navigator.sendBeacon) {
+        navigator.sendBeacon(BACKEND_URL, JSON.stringify({
+            action: 'save',
+            userId: getUserId(),
+            name: getUserName(),
+            email: (currentUser && currentUser.email) || '',
+            data: pendingState
+        }));
+        pendingState = null;
+    }
+});
 
 async function loadFromBackend() {
     const uid = getUserId();
-    if (!uid) return null;
-    try {
-        const url = BACKEND_URL + '?action=load&userId=' + encodeURIComponent(uid);
-        const res = await fetch(url);
-        const json = await res.json();
-        console.log('📥 백엔드 불러옴:', json);
-        
-        if (json.mode === 'EXP' || json.mode === '하트' || json.mode === 'EXP하트' || json.mode === '테스트') {
-            testMode = json.mode === '테스트' ? 'EXP하트' : json.mode;
-            console.log('🧪 테스트 모드:', testMode);
-        } else {
-            testMode = '';
-        }
-        
-        if (json.ok && json.data) return json.data;
-        return null;
-    } catch (e) {
-        console.warn('백엔드 불러오기 실패', e);
-        return null;
+    if (!uid) return { ok: false };
+
+    const json = await apiGet({ action: 'load', userId: uid });
+    if (!json) return { ok: false, networkError: true };
+
+    console.log('📥 백엔드 불러옴:', json);
+
+    if (json.mode === 'EXP' || json.mode === '하트' || json.mode === 'EXP하트' || json.mode === '테스트') {
+        testMode = json.mode === '테스트' ? 'EXP하트' : json.mode;
+        console.log('🧪 테스트 모드:', testMode);
+    } else {
+        testMode = '';
     }
+
+    // 서버 데이터 형식 검증 후에만 사용
+    if (json.ok && json.data && typeof json.data === 'object' && Array.isArray(json.data.farmAnimals)) {
+        return { ok: true, data: json.data };
+    }
+    return { ok: true, data: null };
 }
 
-async function recordWinToBackend(animal, reward) {
-    const uid = getUserId();
-    if (!uid) return;
-    try {
-        await fetch(BACKEND_URL, {
-            method: 'POST',
-            body: JSON.stringify({
-                action: 'win',
-                userId: uid,
-                name: getUserName(),
-                email: (currentUser && currentUser.email) || '',
-                animalStage: animal.stage,
-                rewardLabel: reward.label,
-                rewardType: reward.type,
-                rewardValue: reward.value
-            })
-        });
-        console.log('🏆 당첨 기록 완료');
-    } catch (e) {
-        console.warn('당첨 기록 실패', e);
-    }
+// ============================================
+// 로딩 / 토스트 UI
+// ============================================
+function showLoading(msg) {
+    const overlay = document.getElementById('loading-overlay');
+    const text = document.getElementById('loading-text');
+    if (text) text.textContent = msg || '불러오는 중...';
+    if (overlay) overlay.classList.add('active');
+}
+
+function hideLoading() {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) overlay.classList.remove('active');
+}
+
+function showToast(msg) {
+    const old = document.querySelector('.toast');
+    if (old) old.remove();
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 400);
+    }, 3500);
+}
+
+function showConnectionError() {
+    const overlay = document.getElementById('conn-error-overlay');
+    if (overlay) overlay.classList.add('active');
+}
+
+function retryBoot() {
+    const overlay = document.getElementById('conn-error-overlay');
+    if (overlay) overlay.classList.remove('active');
+    bootGame();
 }
 
 // ============================================
@@ -437,6 +549,8 @@ const LEVEL_EXP_TABLE = {
 };
 const MAX_LEVEL = 10;
 
+// ⚠️ 중요: 이 배열의 "순서"는 서버(Code.gs)의 REWARDS와 반드시 동일해야 합니다.
+// 추첨 자체는 서버에서 하고, 클라이언트는 룰렛 그림과 멈출 위치(인덱스) 표시에만 사용합니다.
 const REWARDS = {
     chicken: [
         { label: '1,000원 쿠폰', emoji: '🎟️', type: 'coupon', value: 1000, weight: 35 },
@@ -473,6 +587,351 @@ const TIME_PER_MATCH = 1;
 const COMBO_BOMB_TRIGGER = 10;
 
 // ============================================
+// 마인크래프트 스타일 픽셀 스프라이트 (v0.9.1)
+// 이모지 대신 SVG 픽셀아트로 캐릭터/작물 렌더링
+// ============================================
+const SPRITES = {
+    // ---- 동물 (마인크래프트 몹 얼굴 스타일, 정면) ----
+    chick: {
+        p: { Y: '#FFD93B', D: '#E0A800', K: '#1A1A1A', W: '#FFFFFF', O: '#FF8C00' },
+        g: [
+            '................',
+            '..YYYYYYYYYYYY..',
+            '..YYYYYYYYYYYY..',
+            '..YYYYYYYYYYYY..',
+            '..YWWKYYYYKWWY..',
+            '..YWWKYYYYKWWY..',
+            '..YYYYYYYYYYYY..',
+            '..YYYYOOOOYYYY..',
+            '..YYYYOOOOYYYY..',
+            '..YYYYYYYYYYYY..',
+            '..YYYYYYYYYYYY..',
+            '..YDYYYYYYYYDY..',
+            '..YDDYYYYYYDDY..',
+            '..YYYYYYYYYYYY..',
+            '................'
+        ]
+    },
+    chicken: {
+        p: { W: '#F7F7F7', S: '#DCDCDC', R: '#D63B3B', O: '#FFB300', K: '#1A1A1A' },
+        g: [
+            '....RRRRRRRR....',
+            '..WWWWWWWWWWWW..',
+            '..WWWWWWWWWWWW..',
+            '..WWWWWWWWWWWW..',
+            '..WKKWWWWWWKKW..',
+            '..WKKWWWWWWKKW..',
+            '..WWWWWWWWWWWW..',
+            '..WWWWOOOOWWWW..',
+            '..WWWWOOOOWWWW..',
+            '..WWWWRRRRWWWW..',
+            '..WWWWRRRRWWWW..',
+            '..WWWWWWWWWWWW..',
+            '..WSWWWWWWWWSW..',
+            '..WSSWWWWWWSSW..',
+            '................'
+        ]
+    },
+    piglet: {
+        p: { P: '#FFAFC0', S: '#F08CA4', N: '#C9536F', K: '#1A1A1A', W: '#FFFFFF' },
+        g: [
+            '................',
+            '..PPPPPPPPPPPP..',
+            '..PPPPPPPPPPPP..',
+            '..PPPPPPPPPPPP..',
+            '..PWWKPPPPKWWP..',
+            '..PWWKPPPPKWWP..',
+            '..PPPPPPPPPPPP..',
+            '..PPPSSSSSSPPP..',
+            '..PPPSNSSNSPPP..',
+            '..PPPSSSSSSPPP..',
+            '..PPPPPPPPPPPP..',
+            '..PPPPPPPPPPPP..',
+            '..PPPPPPPPPPPP..',
+            '................'
+        ]
+    },
+    pig: {
+        p: { P: '#F2A0B0', S: '#D87B93', N: '#A6435C', K: '#1A1A1A', W: '#FFFFFF' },
+        g: [
+            '................',
+            '..PPPPPPPPPPPP..',
+            '..PPPPPPPPPPPP..',
+            '..PWWKPPPPKWWP..',
+            '..PWWKPPPPKWWP..',
+            '..PPPPPPPPPPPP..',
+            '..PPSSSSSSSSPP..',
+            '..PPSNSSSSNSPP..',
+            '..PPSNSSSSNSPP..',
+            '..PPSSSSSSSSPP..',
+            '..PPPPPPPPPPPP..',
+            '..PPPPPPPPPPPP..',
+            '..PPPPPPPPPPPP..',
+            '................'
+        ]
+    },
+    calf: {
+        p: { B: '#8A5A3B', S: '#EFD3BC', N: '#8A5A44', K: '#1A1A1A', W: '#FFFFFF' },
+        g: [
+            '................',
+            '..BBBBBBBBBBBB..',
+            '..BBBBBBBBBBBB..',
+            '..BWWKBBBBKWWB..',
+            '..BWWKBBBBKWWB..',
+            '..BBBBBBBBBBBB..',
+            '..BBBBBBBBBBBB..',
+            '..SSSSSSSSSSSS..',
+            '..SNNSSSSSSNNS..',
+            '..SSSSSSSSSSSS..',
+            '..SSSSSSSSSSSS..',
+            '................'
+        ]
+    },
+    cow: {
+        p: { B: '#5C4033', G: '#C9C9C9', S: '#E8C8B0', N: '#8A5A44', K: '#1A1A1A', W: '#FFFFFF' },
+        g: [
+            '.GG..........GG.',
+            '.GBBBBBBBBBBBBG.',
+            '..BBBBBBBBBBBB..',
+            '..BWWKBBBBKWWB..',
+            '..BWWKBBBBKWWB..',
+            '..BBBBBBBBBBBB..',
+            '..BBBBBBBBBBBB..',
+            '..SSSSSSSSSSSS..',
+            '..SNNSSSSSSNNS..',
+            '..SSSSSSSSSSSS..',
+            '..SSSSSSSSSSSS..',
+            '................'
+        ]
+    },
+    // ---- 작물 ----
+    apple: {
+        p: { R: '#E53935', D: '#B71C1C', T: '#6D4C41', L: '#4CAF50', W: '#FFCDD2' },
+        g: [
+            '......T.........',
+            '......T.LL......',
+            '.....T.LLLL.....',
+            '...RRRRRRRR.....',
+            '..RRRRRRRRRR....',
+            '.RRWWRRRRRRRR...',
+            '.RRWRRRRRRRRR...',
+            '.RRRRRRRRRRRR...',
+            '.RRRRRRRRRRRR...',
+            '.RRRRRRRRRRRD...',
+            '..RRRRRRRRRDD...',
+            '...RRRRRRRDD....',
+            '....RRRRRRD.....'
+        ]
+    },
+    banana: {
+        p: { Y: '#FFD93B', D: '#E0A800', T: '#7A5230' },
+        g: [
+            '...........T....',
+            '..........YY....',
+            '.........YYY....',
+            '........YYYY....',
+            '.......YYYY.....',
+            '......YYYY......',
+            '....YYYYY.......',
+            '..YYYYYY........',
+            '.YYYYYD.........',
+            '.YYYDD..........',
+            '.TDD............'
+        ]
+    },
+    tomato: {
+        p: { R: '#E53935', D: '#B71C1C', G: '#2E7D32', W: '#FFCDD2' },
+        g: [
+            '.....G..G.......',
+            '....GGGGGG......',
+            '...RRGGGGRR.....',
+            '..RRRRRRRRRR....',
+            '.RRRRRRRRRRRR...',
+            '.RRWRRRRRRRRR...',
+            '.RRRRRRRRRRRR...',
+            '.RRRRRRRRRRRR...',
+            '..RRRRRRRRRD....',
+            '...RRRRRRRDD....',
+            '....RRRRRR......'
+        ]
+    },
+    corn: {
+        p: { Y: '#FFD93B', D: '#E8B400', G: '#4CAF50', E: '#2E7D32' },
+        g: [
+            '......YYY.......',
+            '.....YDYDY......',
+            '.....YYDYY......',
+            '.....YDYDY......',
+            '.....YYDYY......',
+            '.....YDYDY......',
+            '....GYYDYYG.....',
+            '....GGYDYGG.....',
+            '....GEGGGEG.....',
+            '.....GEGEG......',
+            '......GEG.......'
+        ]
+    },
+    cucumber: {
+        p: { G: '#43A047', D: '#2E7D32', W: '#A5D6A7' },
+        g: [
+            '......DD........',
+            '.....GGGG.......',
+            '.....GWGG.......',
+            '.....GWGG.......',
+            '.....GWGG.......',
+            '.....GWGG.......',
+            '.....GWGG.......',
+            '.....GGGG.......',
+            '.....GGGD.......',
+            '......GGD.......'
+        ]
+    },
+    eggplant: {
+        p: { P: '#7B1FA2', D: '#4A148C', G: '#388E3C', W: '#CE93D8' },
+        g: [
+            '.......GG.......',
+            '......GGGG......',
+            '.....GGGGG......',
+            '.....PPPPP......',
+            '....PPPPPPP.....',
+            '....PPWPPPP.....',
+            '....PPPPPPPP....',
+            '.....PPPPPPP....',
+            '.....PPPPPPD....',
+            '......PPPPDD....',
+            '.......PPDD.....'
+        ]
+    },
+    onion: {
+        p: { O: '#E0B080', D: '#B98C5A', G: '#7CB342' },
+        g: [
+            '.......G........',
+            '......GG........',
+            '......OO........',
+            '....OOOOOO......',
+            '...OODOODOO.....',
+            '..OODOODOODO....',
+            '..OODOODOODO....',
+            '..OODOODOODO....',
+            '...OODOODOO.....',
+            '....OOOOOO......',
+            '.....OOOO.......'
+        ]
+    },
+    grape: {
+        p: { P: '#8E44AD', D: '#6C3483', G: '#388E3C', T: '#6D4C41' },
+        g: [
+            '.......T........',
+            '......GGT.......',
+            '.....GGG........',
+            '....PP.PP.......',
+            '...PPPPPPP......',
+            '...PPDPPDP......',
+            '....PPPPP.......',
+            '...PPDPPPP......',
+            '....PPPDP.......',
+            '.....PPP........',
+            '......P.........'
+        ]
+    },
+    garlic: {
+        p: { W: '#F5F0E1', D: '#D9CFB5', G: '#7CB342' },
+        g: [
+            '.......G........',
+            '......WW........',
+            '.....WWWW.......',
+            '....WWWWWW......',
+            '...WWDWWDWW.....',
+            '...WWDWWDWW.....',
+            '...WWDWWDWW.....',
+            '....WWWWWW......',
+            '.....WWWW.......'
+        ]
+    },
+    // ---- 배틀용 돌멩이 (코블스톤) ----
+    stone: {
+        p: { G: '#9E9E9E', D: '#757575', L: '#BDBDBD', K: '#616161' },
+        g: [
+            '................',
+            '..GGGGGDDGGGGG..',
+            '..GLLGGGDDGGLG..',
+            '..GLGGDDGGGGGG..',
+            '..GGGGDKDGGLLG..',
+            '..GDDGGDGGGLGG..',
+            '..GGDDGGGDDGGG..',
+            '..GLGGGGGDKDGG..',
+            '..GLLGGDGGDGGG..',
+            '..GGGGDDGGGGLG..',
+            '..GGDGGGGLLGGG..',
+            '..GGDDGGGLGGGG..',
+            '..GGGGGGGGGGGG..',
+            '................'
+        ]
+    },
+    // ---- 로고용 잔디 블록 ----
+    grassblock: {
+        p: { G: '#6FBF44', H: '#5DA838', B: '#8A5A3B', D: '#6E4128', L: '#9C6B47' },
+        g: [
+            'GHGGHGGGHGGHGGGH',
+            'GGHGGHGGGHGGHGGG',
+            'HGGHGGHGGGHGGHGG',
+            'BBDBBBLBBDBBBLBB',
+            'BLBBDBBBLBBDBBBL',
+            'BBBLBBDBBBLBBBDB',
+            'BDBBBLBBBDBBLBBB',
+            'BBLBBBDBBBLBBBDB',
+            'BBBDBBBLBBBDBBBL',
+            'BLBBBDBBLBBBDBBB',
+            'BBDBBBLBBBDBBBLB',
+            'BBBLBBBDBBBLBBBD',
+            'BDBBLBBBDBBLBBBB',
+            'BBBDBBBLBBBDBBLB',
+            'BLBBBDBBBLBBBDBB',
+            'BBBLBBDBBBLBBBDB'
+        ]
+    }
+};
+
+const _spriteCache = {};
+
+function spriteURI(name) {
+    if (_spriteCache[name]) return _spriteCache[name];
+    const s = SPRITES[name];
+    if (!s) return '';
+    const rows = s.g;
+    const h = rows.length;
+    const w = Math.max(...rows.map(r => r.length));
+    let rects = '';
+    for (let y = 0; y < h; y++) {
+        const row = rows[y];
+        let x = 0;
+        while (x < row.length) {
+            const ch = row[x];
+            if (ch === '.' || ch === ' ') { x++; continue; }
+            let x2 = x + 1;
+            while (x2 < row.length && row[x2] === ch) x2++; // 가로 연속 픽셀 병합
+            rects += `<rect x="${x}" y="${y}" width="${x2 - x}" height="1" fill="${s.p[ch]}"/>`;
+            x = x2;
+        }
+    }
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges">${rects}</svg>`;
+    const uri = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    _spriteCache[name] = uri;
+    return uri;
+}
+
+function spriteTag(name, cls = '') {
+    return `<img class="pix${cls ? ' ' + cls : ''}" src="${spriteURI(name)}" alt="${name}" draggable="false">`;
+}
+
+function animalSpriteName(animal) {
+    const adult = animal.level >= MAX_LEVEL;
+    if (animal.stage === 'chicken') return adult ? 'chicken' : 'chick';
+    if (animal.stage === 'pig') return adult ? 'pig' : 'piglet';
+    return adult ? 'cow' : 'calf';
+}
+
+// ============================================
 // 게임 상태
 // ============================================
 let board = [];
@@ -503,7 +962,33 @@ let activePosY = 0;
 
 let currentRewards = [];
 let chosenRewardIndex = -1;
+let serverReward = null;      // 서버가 결정해서 내려준 보상
+let spinInProgress = false;   // 룰렛 중복 클릭 방지
 let activeWanderInterval = null;
+
+// ---- 배틀 상태 ----
+let battleMode = false;
+let battleId = null;
+let battleRole = null;          // 'p1' | 'p2'
+let battleOppName = '';
+let battleScore = 0;            // 내 매치 수
+let battleAttacksSent = 0;      // 내가 보낸 돌멩이 누적
+let battleAttacksApplied = 0;   // 상대가 보낸 돌멩이 중 이미 적용한 누적
+let battleOppScore = 0;
+let battleFinished = false;
+let battleIsBot = false;
+let battlePollTimer = null;
+let botState = null;
+let botTickTimer = null;
+let mmPollTimer = null;
+let mmActive = false;
+let mmStartTs = 0;
+
+const STONE = { id: 'stone', emoji: '🪨', name: '돌멩이' };
+const BATTLE_CROP_IDS = ['apple', 'banana', 'tomato', 'corn', 'cucumber', 'eggplant'];
+const BATTLE_TIME = 90;
+const MM_BOT_FALLBACK_MS = 10000;  // 10초 안에 상대 없으면 봇
+const BATTLE_POLL_MS = 2500;
 
 const screenLogin = document.getElementById('screen-login');
 const screenMain = document.getElementById('screen-main');
@@ -531,7 +1016,13 @@ const timeTextMain = document.getElementById('time-text-main');
 function saveState() {
     const state = { farmAnimals, activeAnimalId, hearts, dailyEatenToday, lastResetDate };
     localStorage.setItem('pangpang-farm-v5', JSON.stringify(state));
-    saveToBackend(state);
+    scheduleBackendSave(state);
+}
+
+// 중요한 순간(승급, 룰렛, 게임 종료 등)에는 디바운스 없이 즉시 전송
+function saveStateNow() {
+    saveState();
+    flushBackendSave();
 }
 
 function loadLocalState() {
@@ -698,7 +1189,7 @@ function renderBigFarm() {
         el.className = 'big-animal';
         if (animal.level >= MAX_LEVEL) el.classList.add('adult');
         el.dataset.animalId = animal.id;
-        el.textContent = getAnimalEmoji(animal);
+        el.innerHTML = spriteTag(animalSpriteName(animal));
 
         if (animal.posX === undefined || animal.posX < 20 || animal.posX > farmWidth - 60) {
             animal.posX = 30 + (idx * 70) % (farmWidth - 80);
@@ -709,7 +1200,7 @@ function renderBigFarm() {
 
         el.style.left = animal.posX + 'px';
         el.style.top = animal.posY + 'px';
-        el.style.transform = animal.facingRight ? 'scaleX(1)' : 'scaleX(-1)';
+        el.style.transform = 'scaleX(1)'; // 정면 스프라이트: 반전 시 이름표가 거울 글씨가 되므로 고정
 
         const lvTag = document.createElement('span');
         lvTag.className = 'lv-tag';
@@ -769,12 +1260,13 @@ function startBigFarmWandering() {
             animal.posX = targetX;
             animal.posY = targetY;
 
-            el.style.transform = animal.facingRight ? 'scaleX(1)' : 'scaleX(-1)';
+            el.style.transform = 'scaleX(1)';
             el.style.left = targetX + 'px';
             el.style.top = targetY + 'px';
             el.classList.add('walking');
             setTimeout(() => el.classList.remove('walking'), 3000);
         });
+        // 위치 변화는 로컬에만 저장 (백엔드 전송은 디바운스가 알아서 묶음)
         saveState();
     }, 4000);
 }
@@ -806,7 +1298,7 @@ function confirmName() {
     const baby = createNewBabyChicken(name);
     farmAnimals.push(baby);
     activeAnimalId = baby.id;
-    saveState();
+    saveStateNow();
 
     document.getElementById('name-overlay').classList.remove('active');
     enterMain();
@@ -909,13 +1401,13 @@ function updatePuzzleUI() {
 
     const animalEl = document.getElementById('puzzle-active-spot');
     if (animalEl) {
-        animalEl.textContent = getAnimalEmoji(active);
+        animalEl.innerHTML = spriteTag(animalSpriteName(active));
         if (active.level >= MAX_LEVEL) animalEl.classList.add('adult');
         else animalEl.classList.remove('adult');
     }
 
     const emojiMini = document.getElementById('active-emoji-mini');
-    if (emojiMini) emojiMini.textContent = getAnimalEmoji(active);
+    if (emojiMini) emojiMini.innerHTML = spriteTag(animalSpriteName(active));
 
     document.getElementById('active-name-mini').textContent = active.name;
     document.getElementById('active-level-mini').textContent = active.level;
@@ -991,6 +1483,12 @@ function triggerBombEffect() {
     const bombExp = MATCH_BASE_EXP * targetCells.length;
     sessionMatches += targetCells.length;
     grantExpToActive(bombExp);
+
+    if (battleMode) {
+        battleScore += Math.ceil(targetCells.length / 2);
+        sendBattleAttack(Math.max(1, Math.floor(targetCells.length / 3)));
+        updateBattlePanel();
+    }
     
     targetCells.forEach((pos, idx) => {
         const cell = boardElement.children[pos.row * BOARD_SIZE + pos.col];
@@ -1048,7 +1546,7 @@ function showBombEffect(crop) {
     
     if (crop) {
         const target = document.createElement('div');
-        target.textContent = crop.emoji + ' 폭파!';
+        target.innerHTML = spriteTag(crop.id, 'inline-pix') + ' 폭파!';
         target.style.cssText = `
             position: absolute;
             left: 50%;
@@ -1078,7 +1576,10 @@ function startTimer() {
     puzzleTimerInterval = setInterval(() => {
         puzzleTimer--;
         updateTimerDisplay();
-        if (puzzleTimer <= 0) endPuzzleSession('timeout');
+        if (puzzleTimer <= 0) {
+            if (battleMode) finishBattle();
+            else endPuzzleSession('timeout');
+        }
     }, 1000);
 }
 
@@ -1099,6 +1600,7 @@ function updateTimerDisplay() {
     }
 }
 function addTime(seconds) {
+    if (battleMode && seconds > 0) return; // 배틀은 공정성을 위해 시간 추가 없음 (힌트 비용 차감은 허용)
     puzzleTimer += seconds;
     if (puzzleTimer < 0) puzzleTimer = 0;
     if (puzzleTimer > INITIAL_TIME) puzzleTimer = INITIAL_TIME;
@@ -1156,15 +1658,17 @@ function updateHintButton() {
 
 function findHintCandidates() {
     const results = [];
+    const isStone = (r, c) => board[r] && board[r][c] && board[r][c].id === 'stone';
     for (let row = 0; row < BOARD_SIZE; row++) {
         for (let col = 0; col < BOARD_SIZE; col++) {
-            if (col < BOARD_SIZE - 1) {
+            if (isStone(row, col)) continue; // 돌멩이는 움직일 수 없으니 힌트 제외
+            if (col < BOARD_SIZE - 1 && !isStone(row, col + 1)) {
                 swap(row, col, row, col + 1);
                 const matches = findMatches();
                 swap(row, col, row, col + 1);
                 if (matches.length > 0) results.push([{row, col}, {row, col: col + 1}]);
             }
-            if (row < BOARD_SIZE - 1) {
+            if (row < BOARD_SIZE - 1 && !isStone(row + 1, col)) {
                 swap(row, col, row + 1, col);
                 const matches = findMatches();
                 swap(row, col, row + 1, col);
@@ -1176,6 +1680,7 @@ function findHintCandidates() {
 }
 
 function getCurrentCrops() {
+    if (battleMode) return ALL_CROPS.filter(c => BATTLE_CROP_IDS.includes(c.id));
     const active = getActiveAnimal();
     const stage = active ? active.stage : 'chicken';
     const ids = CROPS_BY_STAGE[stage];
@@ -1210,7 +1715,7 @@ function renderBoard() {
             cell.className = 'cell';
             const crop = board[row][col];
             if (crop) {
-                cell.textContent = crop.emoji;
+                cell.innerHTML = spriteTag(crop.id);
                 cell.dataset.cropId = crop.id;
             }
             cell.dataset.row = row;
@@ -1224,6 +1729,15 @@ function renderBoard() {
 function handleCellClick(row, col) {
     if (isLocked) return;
     if (puzzleTimer <= 0) return;
+
+    // 돌멩이는 선택할 수 없음
+    if (board[row][col] && board[row][col].id === 'stone') {
+        if (selectedCell !== null) {
+            highlightCell(selectedCell.row, selectedCell.col, false);
+            selectedCell = null;
+        }
+        return;
+    }
 
     if (selectedCell === null) {
         selectedCell = { row, col };
@@ -1278,7 +1792,7 @@ function findMatches() {
         const k = row + '-' + col;
         if (!seen.has(k)) { seen.add(k); matched.push({row, col}); }
     };
-    const same = (a, b) => a && b && a.id === b.id;
+    const same = (a, b) => a && b && a.id === b.id && a.id !== 'stone';
 
     for (let row = 0; row < BOARD_SIZE; row++) {
         for (let col = 0; col <= BOARD_SIZE - 3; col++) {
@@ -1315,6 +1829,33 @@ function processMatches() {
     }
     sessionMatches++;
     if (comboCount > sessionMaxCombo) sessionMaxCombo = comboCount;
+
+    // 배틀: 매치 1회 = 상대에게 돌멩이 1개 (3콤보 이상은 +1)
+    if (battleMode) {
+        battleScore++;
+        sendBattleAttack(comboCount >= 3 ? 2 : 1);
+        updateBattlePanel();
+    }
+
+    // 매치에 인접한 돌멩이는 같이 파괴
+    const stoneClears = [];
+    if (battleMode) {
+        const stoneSeen = new Set();
+        matches.forEach(({row, col}) => {
+            [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dr, dc]) => {
+                const r = row + dr, c = col + dc;
+                if (r < 0 || c < 0 || r >= BOARD_SIZE || c >= BOARD_SIZE) return;
+                const k = r + '-' + c;
+                if (stoneSeen.has(k)) return;
+                if (board[r][c] && board[r][c].id === 'stone') {
+                    stoneSeen.add(k);
+                    stoneClears.push({ row: r, col: c });
+                    const cell = boardElement.children[r * BOARD_SIZE + c];
+                    if (cell) cell.classList.add('matching');
+                }
+            });
+        });
+    }
     
     const expGain = MATCH_BASE_EXP;
 
@@ -1358,6 +1899,7 @@ function processMatches() {
 
     setTimeout(() => {
         matches.forEach(({row, col}) => { board[row][col] = null; });
+        stoneClears.forEach(({row, col}) => { board[row][col] = null; });
         dropDown();
         fillEmpty();
         renderBoard();
@@ -1376,6 +1918,7 @@ function processMatches() {
 }
 
 function checkEndConditions() {
+    if (battleMode) return; // 배틀은 타이머 종료로만 끝남
     if (dailyEatenToday >= DAILY_EXP_LIMIT && !isExpTest()) {
         setTimeout(() => endPuzzleSession('full'), 500);
         return;
@@ -1391,6 +1934,7 @@ function checkEndConditions() {
 }
 
 function grantExpToActive(amount) {
+    if (battleMode) return; // 배틀에서는 EXP 없음
     const active = getActiveAnimal();
     if (!active || active.level >= MAX_LEVEL) return;
     
@@ -1433,6 +1977,7 @@ function showLevelUpEffect(animal) {
 }
 
 function dropCropToField(cell, crop) {
+    if (battleMode) return; // 배틀에서는 미니 농장 없음
     const farmEl = document.getElementById('puzzle-mini-farm');
     const dropsLayer = document.getElementById('dropped-crops-layer');
     if (!farmEl || !dropsLayer) return;
@@ -1451,7 +1996,7 @@ function dropCropToField(cell, crop) {
 
     const flying = document.createElement('div');
     flying.className = 'flying-crop';
-    flying.textContent = crop.emoji;
+    flying.innerHTML = spriteTag(crop.id);
     flying.style.left = startX + 'px';
     flying.style.top = startY + 'px';
     document.body.appendChild(flying);
@@ -1466,7 +2011,7 @@ function dropCropToField(cell, crop) {
         flying.remove();
         const dropped = document.createElement('div');
         dropped.className = 'dropped-crop';
-        dropped.textContent = crop.emoji;
+        dropped.innerHTML = spriteTag(crop.id);
         dropped.style.left = (randXInLayer - 11) + 'px';
         dropped.style.top = (randYInLayer - 11) + 'px';
         dropsLayer.appendChild(dropped);
@@ -1598,7 +2143,7 @@ function showScorePopup(matchPos, expGain, multiplier) {
     const popup = document.createElement('div');
     popup.className = 'score-popup';
     if (multiplier >= 2) popup.classList.add('combo');
-    popup.textContent = '+' + expGain;
+    popup.textContent = battleMode ? '🪨 +1' : '+' + expGain;
     popup.style.left = cx + 'px';
     popup.style.top = cy + 'px';
     flyLayer.appendChild(popup);
@@ -1641,6 +2186,7 @@ function endPuzzleSession(reason) {
     if (dropsLayer) dropsLayer.innerHTML = '';
     droppedCropQueue = [];
     animalIsMovingToFood = false;
+    saveStateNow();  // 세션 종료 시 진행도 즉시 서버 저장
     showResultScreen(reason);
 }
 
@@ -1682,6 +2228,7 @@ function closeExit() {
 
 function exitToMain() {
     document.getElementById('exit-overlay').classList.remove('active');
+    if (battleMode) { forfeitBattle(); return; }
     endPuzzleSession('exit');
 }
 
@@ -1689,7 +2236,8 @@ function showAdultPopup(animal) {
     isLocked = true;
     stopTimer();
     const s = STAGES[animal.stage];
-    document.getElementById('modal-emoji').textContent = s.adultEmoji;
+    const adultSprite = animal.stage === 'chicken' ? 'chicken' : animal.stage === 'pig' ? 'pig' : 'cow';
+    document.getElementById('modal-emoji').innerHTML = spriteTag(adultSprite);
     document.getElementById('modal-title').textContent =
         animal.name + '(이)가 ' + s.adultName + '(으)로 다 자랐어요!';
     document.getElementById('modal-animal-name').textContent = animal.name;
@@ -1720,7 +2268,7 @@ function showAdultPopup(animal) {
 function chooseCompanion() {
     closeAdultModal();
     activeAnimalId = null;
-    saveState();
+    saveStateNow();
     if (screenPuzzle.classList.contains('active')) endPuzzleSession('timeout');
     else renderBigFarm();
 }
@@ -1734,10 +2282,9 @@ function chooseUpgrade() {
     animal.stage = s.nextStage;
     animal.level = 1;
     animal.exp = 0;
-    saveState();
     closeAdultModal();
     activeAnimalId = animal.id;
-    saveState();
+    saveStateNow();
     if (screenPuzzle.classList.contains('active')) endPuzzleSession('timeout');
     else renderBigFarm();
 }
@@ -1760,6 +2307,12 @@ function showRoulette() {
 
     currentRewards = REWARDS[animal.stage];
     chosenRewardIndex = -1;
+    serverReward = null;
+    spinInProgress = false;
+
+    // ⚠️ 룰렛을 열기 전, 최신 농장 상태(다 자란 동물 포함)를 서버에 먼저 반영
+    // 서버 추첨이 서버에 저장된 데이터로 동물을 검증하기 때문
+    flushBackendSave();
 
     const wrap = document.querySelector('.roulette-wrapper');
     if (!wrap) return;
@@ -1810,31 +2363,71 @@ function showRoulette() {
     document.getElementById('roulette-overlay').classList.add('active');
 }
 
-function spinRoulette() {
-    if (chosenRewardIndex !== -1) return;
-    const totalW = currentRewards.reduce((sum, r) => sum + r.weight, 0);
-    let rnd = Math.random() * totalW;
-    for (let i = 0; i < currentRewards.length; i++) {
-        rnd -= currentRewards[i].weight;
-        if (rnd <= 0) { chosenRewardIndex = i; break; }
+// ============================================
+// 룰렛: 추첨은 서버에서, 클라이언트는 연출만
+// ============================================
+async function spinRoulette() {
+    if (spinInProgress || chosenRewardIndex !== -1) return;
+
+    const overlay = document.getElementById('roulette-overlay');
+    const id = overlay.dataset.targetId;
+    const animal = farmAnimals.find(a => a.id === id);
+    if (!animal) {
+        alert('동물 정보를 찾을 수 없어요. 농장으로 돌아가서 다시 시도해주세요.');
+        return;
     }
+
+    spinInProgress = true;
+    const btn = document.getElementById('btn-spin');
+    btn.disabled = true;
+    btn.textContent = '🎲 추첨 중...';
+
+    // 룰렛 열 때 보낸 저장이 도착할 시간 확보 후 서버 추첨 요청
+    const json = await apiCall({
+        action: 'spin',
+        userId: getUserId(),
+        name: getUserName(),
+        email: (currentUser && currentUser.email) || '',
+        animalId: id
+    });
+
+    if (!json || !json.ok || typeof json.rewardIndex !== 'number' || !currentRewards[json.rewardIndex]) {
+        spinInProgress = false;
+        btn.disabled = false;
+        btn.textContent = '룰렛 돌리기!';
+        const msg = (json && json.error)
+            ? json.error
+            : '추첨 서버에 연결하지 못했어요.\n네트워크 확인 후 다시 시도해주세요.';
+        alert(msg);
+        return;
+    }
+
+    chosenRewardIndex = json.rewardIndex;
+    serverReward = json.reward || currentRewards[chosenRewardIndex];
+
+    // 회전 시작 전 각도를 0으로 확실히 리셋 (룰렛이 계속 돌아 보이는 문제 방지)
+    const r = document.getElementById('roulette-svg');
+    r.style.transition = 'none';
+    r.style.transform = 'rotate(0deg)';
+    void r.offsetWidth; // 강제 리플로우로 리셋 즉시 반영
+
     const segAngle = 360 / currentRewards.length;
     const target = chosenRewardIndex * segAngle + segAngle / 2;
     const totalRot = 360 * 5 + (360 - target);
-    const r = document.getElementById('roulette-svg');
     r.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.21, 1)';
     r.style.transform = 'rotate(' + totalRot + 'deg)';
-    document.getElementById('btn-spin').disabled = true;
-    document.getElementById('btn-spin').textContent = '돌아가는 중...';
+    btn.textContent = '돌아가는 중...';
     setTimeout(() => showPrize(), 4200);
 }
 
 function showPrize() {
-    const reward = currentRewards[chosenRewardIndex];
+    spinInProgress = false;
+    const reward = serverReward || currentRewards[chosenRewardIndex];
+    if (!reward) return;
     const id = document.getElementById('roulette-overlay').dataset.targetId;
     const animal = farmAnimals.find(a => a.id === id);
 
-    document.getElementById('prize-emoji').textContent = reward.emoji;
+    document.getElementById('prize-emoji').textContent = reward.emoji || '🎁';
 
     if (reward.type === 'miss') {
         document.getElementById('prize-title').textContent = '아쉽지만 꽝!';
@@ -1850,11 +2443,11 @@ function showPrize() {
         }
     }
 
+    // 당첨 기록은 서버가 추첨 시점에 이미 저장함 (클라이언트 보고 없음)
     if (animal) {
-        if (reward.type !== 'miss') recordWinToBackend(animal, reward);
         farmAnimals = farmAnimals.filter(a => a.id !== animal.id);
         if (activeAnimalId === animal.id) activeAnimalId = null;
-        saveState();
+        saveStateNow();
     }
 
     document.getElementById('roulette-overlay').classList.remove('active');
@@ -1864,6 +2457,8 @@ function showPrize() {
 function closePrize() {
     document.getElementById('prize-overlay').classList.remove('active');
     chosenRewardIndex = -1;
+    serverReward = null;
+    spinInProgress = false;
     if (screenPuzzle.classList.contains('active')) endPuzzleSession('timeout');
     else renderBigFarm();
 }
@@ -1879,15 +2474,380 @@ function confirmReset() {
     }
 }
 
+// ============================================
+// ⚔️ 배틀 모드 — 실시간 매칭 (봇 폴백)
+// 매치 1회 = 상대 보드에 돌멩이 1개. 90초 후 매치 수가 많은 쪽 승리, 승자 하트 +1.
+// PvP는 2.5초 폴링으로 동기화 (GAS 한계상 돌멩이 도착에 2~3초 지연 있음)
+// ============================================
+function goToBattle() {
+    initAudio();
+    battleResetState();
+    mmStartTs = Date.now();
+    mmActive = true;
+    document.getElementById('mm-status').textContent = '상대를 찾는 중...';
+    document.getElementById('mm-overlay').classList.add('active');
+    requestBattleMatch();
+}
+
+function battleResetState() {
+    battleScore = 0;
+    battleAttacksSent = 0;
+    battleAttacksApplied = 0;
+    battleOppScore = 0;
+    battleFinished = false;
+    battleIsBot = false;
+    battleId = null;
+    battleRole = null;
+    botState = null;
+}
+
+async function requestBattleMatch() {
+    const json = await apiCall({ action: 'battle_join', userId: getUserId(), name: getUserName() }, 0);
+    if (!mmActive) return;
+    if (json && json.ok && json.matched) { onBattleMatched(json); return; }
+    if (!json) { startBotBattle(); return; } // 서버 연결 실패 → 바로 봇
+    pollBattleMatch();
+}
+
+function pollBattleMatch() {
+    if (!mmActive) return;
+    const elapsed = Date.now() - mmStartTs;
+    const statusEl = document.getElementById('mm-status');
+    if (statusEl) statusEl.textContent = '상대를 찾는 중... ' + Math.floor(elapsed / 1000) + '초';
+
+    if (elapsed >= MM_BOT_FALLBACK_MS) {
+        apiCall({ action: 'battle_cancel', userId: getUserId() }, 0); // 대기열에서 빠지기
+        startBotBattle();
+        return;
+    }
+
+    mmPollTimer = setTimeout(async () => {
+        if (!mmActive) return;
+        const json = await apiCall({ action: 'battle_poll', userId: getUserId(), name: getUserName() }, 0);
+        if (!mmActive) return;
+        if (json && json.ok && json.matched) { onBattleMatched(json); return; }
+        pollBattleMatch();
+    }, 2000);
+}
+
+function cancelMatchmaking() {
+    mmActive = false;
+    if (mmPollTimer) clearTimeout(mmPollTimer);
+    apiCall({ action: 'battle_cancel', userId: getUserId() }, 0);
+    document.getElementById('mm-overlay').classList.remove('active');
+}
+
+function onBattleMatched(json) {
+    mmActive = false;
+    if (mmPollTimer) clearTimeout(mmPollTimer);
+    battleIsBot = false;
+    battleId = json.battleId;
+    battleRole = json.role;
+    battleOppName = json.opponent || '상대';
+    const statusEl = document.getElementById('mm-status');
+    if (statusEl) statusEl.textContent = '⚔️ ' + battleOppName + ' 님과 매칭!';
+    setTimeout(() => {
+        document.getElementById('mm-overlay').classList.remove('active');
+        startBattleSession();
+    }, 900);
+}
+
+function startBotBattle() {
+    mmActive = false;
+    if (mmPollTimer) clearTimeout(mmPollTimer);
+    battleIsBot = true;
+    battleOppName = 'COM';
+    const statusEl = document.getElementById('mm-status');
+    if (statusEl) statusEl.textContent = '접속 중인 상대가 없어요.\n컴퓨터와 대결합니다!';
+    setTimeout(() => {
+        document.getElementById('mm-overlay').classList.remove('active');
+        startBattleSession();
+    }, 1200);
+}
+
+function startBattleSession() {
+    battleMode = true;
+    showScreen('puzzle');
+    document.getElementById('screen-puzzle').classList.add('battle');
+    stopBigFarmWandering();
+    stopActiveAnimalWandering();
+
+    puzzleTimer = BATTLE_TIME;
+    comboCount = 0;
+    cumulativeCombo = 0;
+    bombReady = false;
+    selectedCell = null;
+    isLocked = false;
+    sessionMatches = 0;
+    sessionMaxCombo = 1;
+    sessionGainedExp = 0;
+    sessionHintsLeft = HINT_FREE_COUNT;
+    droppedCropQueue = [];
+    animalIsMovingToFood = false;
+
+    document.getElementById('battle-my-name').textContent = getUserName();
+    document.getElementById('battle-opp-name').textContent = battleOppName;
+    updateHintButton();
+    updateComboGauge();
+    updateBattlePanel();
+
+    board = createBoard();
+    renderBoard();
+    startTimer();
+    startBGM();
+
+    if (battleIsBot) startBotEngine();
+    else startBattlePolling();
+}
+
+function updateBattlePanel() {
+    const my = document.getElementById('battle-my-score');
+    const op = document.getElementById('battle-opp-score');
+    if (my) my.textContent = battleScore;
+    if (op) op.textContent = battleOppScore;
+}
+
+function sendBattleAttack(n) {
+    battleAttacksSent += n;
+    if (battleIsBot && botState) {
+        // 봇은 돌을 맞으면 다음 매치가 느려짐
+        botState.slowdown = Math.min(4000, botState.slowdown + 700 * n);
+    }
+    // PvP는 다음 폴링 때 누적값(battleAttacksSent)으로 전송됨
+}
+
+// 상대가 보낸 돌멩이를 내 보드에 떨어뜨림
+function applyIncomingStones(n) {
+    if (n <= 0 || battleFinished || !battleMode) return;
+    const candidates = [];
+    for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+            if (board[r][c] && board[r][c].id !== 'stone') candidates.push({ r, c });
+        }
+    }
+    // 최소 12칸은 일반 작물로 남겨 완전 막힘 방지
+    const maxApply = Math.max(0, candidates.length - 12);
+    const count = Math.min(n, maxApply);
+    for (let i = 0; i < count; i++) {
+        const idx = Math.floor(Math.random() * candidates.length);
+        const { r, c } = candidates.splice(idx, 1)[0];
+        board[r][c] = STONE;
+    }
+    if (count > 0) {
+        renderBoard();
+        const panel = document.getElementById('battle-panel');
+        if (panel) {
+            panel.classList.add('hit');
+            setTimeout(() => panel.classList.remove('hit'), 500);
+        }
+        playMatchSound();
+    }
+}
+
+// ---- PvP 폴링 ----
+function startBattlePolling() {
+    battlePollTimer = setInterval(battlePollTick, BATTLE_POLL_MS);
+    battlePollTick();
+}
+
+async function battlePollTick() {
+    if (!battleMode || battleIsBot) return;
+    const json = await apiCall({
+        action: 'battle_update',
+        userId: getUserId(),
+        battleId: battleId,
+        role: battleRole,
+        score: battleScore,
+        attacks: battleAttacksSent,
+        done: battleFinished
+    }, 0);
+
+    if (!battleMode) return;
+    if (!json || !json.ok) {
+        // 배틀 상태 유실(캐시 만료 등) → 상대 이탈로 간주
+        if (json && json.error === 'expired') concludeBattle('opp_left');
+        return;
+    }
+
+    const opp = json.opponent;
+    battleOppScore = Math.max(battleOppScore, opp.score || 0);
+    updateBattlePanel();
+
+    // 새로 도착한 돌멩이 적용
+    const newStones = (opp.attacks || 0) - battleAttacksApplied;
+    if (newStones > 0) {
+        battleAttacksApplied = opp.attacks;
+        applyIncomingStones(newStones);
+    }
+
+    if (opp.forfeit && !battleFinished) { concludeBattle('opp_forfeit'); return; }
+
+    // 상대 하트비트가 12초 이상 끊기면 이탈 처리
+    const oppStale = !opp.done && (json.now - opp.hb > 12000);
+    if (oppStale && !battleFinished) { concludeBattle('opp_left'); return; }
+
+    // 내가 끝났고 상대도 끝났으면(또는 이탈) 결과 확정
+    if (battleFinished && (opp.done || json.now - opp.hb > 12000)) {
+        concludeBattle('both_done');
+    }
+}
+
+// ---- 봇 엔진 (중간 난이도: 평균 5초당 매치 1회, 가끔 콤보) ----
+function startBotEngine() {
+    botState = { slowdown: 0, nextAt: Date.now() + 3000 + Math.random() * 2000 };
+    botTickTimer = setInterval(botTick, 500);
+}
+
+function stopBotEngine() {
+    if (botTickTimer) { clearInterval(botTickTimer); botTickTimer = null; }
+}
+
+function botTick() {
+    if (!battleMode || !battleIsBot || battleFinished || !botState) return;
+    botState.slowdown = Math.max(0, botState.slowdown - 150);
+    const now = Date.now();
+    if (now < botState.nextAt) return;
+
+    let stones = 1;
+    battleOppScore++;
+    if (Math.random() < 0.18) { battleOppScore++; stones = 2; } // 콤보
+    updateBattlePanel();
+    applyIncomingStones(stones);
+
+    botState.nextAt = now + 3800 + Math.random() * 2600 + botState.slowdown;
+}
+
+// ---- 종료 / 결과 ----
+function finishBattle() {
+    if (battleFinished) return;
+    battleFinished = true;
+    stopTimer();
+    isLocked = true;
+    stopBGM();
+
+    if (battleIsBot) {
+        stopBotEngine();
+        apiCall({
+            action: 'battle_log', userId: getUserId(), name: getUserName(),
+            myScore: battleScore, oppScore: battleOppScore,
+            result: battleScore > battleOppScore ? 'win' : battleScore < battleOppScore ? 'lose' : 'draw'
+        }, 0);
+        concludeBattle('both_done');
+    } else {
+        showLoading('상대의 결과를 기다리는 중...');
+        battlePollTick(); // done 상태 즉시 전송
+        // 15초 안전장치: 상대 응답이 없어도 현재 점수로 확정
+        setTimeout(() => { if (battleMode) concludeBattle('timeout_safe'); }, 15000);
+    }
+}
+
+function concludeBattle(reason) {
+    if (!battleMode) return;
+    hideLoading();
+    if (battlePollTimer) { clearInterval(battlePollTimer); battlePollTimer = null; }
+    stopBotEngine();
+    stopTimer();
+    battleFinished = true;
+
+    let result;
+    if (reason === 'opp_left' || reason === 'opp_forfeit') result = 'win';
+    else if (battleScore > battleOppScore) result = 'win';
+    else if (battleScore < battleOppScore) result = 'lose';
+    else result = 'draw';
+
+    showBattleResult(result, reason);
+}
+
+function showBattleResult(result, reason) {
+    battleMode = false;
+    isLocked = false;
+    document.getElementById('screen-puzzle').classList.remove('battle');
+
+    const emoji = document.getElementById('battle-result-emoji');
+    const title = document.getElementById('battle-result-title');
+    const desc = document.getElementById('battle-result-desc');
+    const scoreEl = document.getElementById('battle-result-score');
+    scoreEl.textContent = battleScore + ' : ' + battleOppScore;
+
+    if (result === 'win') {
+        emoji.textContent = '🏆';
+        title.textContent = '승리!';
+        if (hearts < MAX_HEARTS) {
+            hearts++;
+            desc.textContent = (reason === 'opp_left' || reason === 'opp_forfeit')
+                ? '상대가 나가서 승리! 하트 +1 ❤️'
+                : '하트 +1 획득! ❤️';
+        } else {
+            desc.textContent = '이겼지만 하트가 이미 가득해요 (최대 5개)';
+        }
+        updateHeartUI();
+        saveStateNow();
+    } else if (result === 'lose') {
+        emoji.textContent = '😢';
+        title.textContent = '패배...';
+        desc.textContent = reason === 'forfeit' ? '기권해서 패배 처리됐어요' : '다음엔 이길 수 있어요!';
+    } else {
+        emoji.textContent = '🤝';
+        title.textContent = '무승부';
+        desc.textContent = '아쉽다! 한 번 더?';
+    }
+    document.getElementById('battle-result-overlay').classList.add('active');
+}
+
+function closeBattleResult() {
+    document.getElementById('battle-result-overlay').classList.remove('active');
+    battleCleanup();
+    enterMain();
+}
+
+function battleCleanup() {
+    battleMode = false;
+    battleId = null;
+    battleRole = null;
+    battleFinished = false;
+    if (battlePollTimer) { clearInterval(battlePollTimer); battlePollTimer = null; }
+    stopBotEngine();
+    document.getElementById('screen-puzzle').classList.remove('battle');
+    isLocked = false;
+}
+
+function forfeitBattle() {
+    if (!battleIsBot && battleId) {
+        apiCall({
+            action: 'battle_update', userId: getUserId(), battleId: battleId, role: battleRole,
+            score: battleScore, attacks: battleAttacksSent, done: true, forfeit: true
+        }, 0);
+    }
+    if (battlePollTimer) { clearInterval(battlePollTimer); battlePollTimer = null; }
+    stopBotEngine();
+    stopTimer();
+    stopBGM();
+    battleFinished = true;
+    showBattleResult('lose', 'forfeit');
+}
+
 async function bootGame() {
     const localOk = loadLocalState();
-    const serverData = await loadFromBackend();
-    if (serverData) {
-        farmAnimals = serverData.farmAnimals || [];
-        activeAnimalId = serverData.activeAnimalId || null;
-        hearts = serverData.hearts !== undefined ? serverData.hearts : 3;
-        dailyEatenToday = serverData.dailyEatenToday || 0;
-        lastResetDate = serverData.lastResetDate || '';
+
+    showLoading('농장 데이터를 불러오는 중...');
+    const result = await loadFromBackend();
+    hideLoading();
+
+    if (result.networkError) {
+        if (localOk) {
+            // 서버 연결 실패해도 로컬 데이터로 플레이는 가능하게
+            showToast('⚠️ 서버 연결에 실패했어요. 이 기기에 저장된 데이터로 시작해요.');
+        } else {
+            // 로컬 데이터도 없으면 재시도 안내
+            showConnectionError();
+            return;
+        }
+    } else if (result.data) {
+        farmAnimals = result.data.farmAnimals || [];
+        activeAnimalId = result.data.activeAnimalId || null;
+        hearts = result.data.hearts !== undefined ? result.data.hearts : 3;
+        dailyEatenToday = result.data.dailyEatenToday || 0;
+        lastResetDate = result.data.lastResetDate || '';
         console.log('✅ 서버 데이터 복원');
     }
 
@@ -1896,7 +2856,7 @@ async function bootGame() {
     updateSkyByTime();
     setInterval(updateSkyByTime, 60000);
 
-    if ((!localOk && !serverData) || farmAnimals.length === 0) {
+    if ((!localOk && !result.data) || farmAnimals.length === 0) {
         showScreen('main');
         renderBigFarm();
         startBigFarmWandering();
@@ -1908,6 +2868,10 @@ async function bootGame() {
 
 function init() {
     loadSoundSetting();
+
+    // 로그인 로고를 마인크래프트 잔디 블록으로
+    const logo = document.querySelector('.login-logo');
+    if (logo) logo.innerHTML = spriteTag('grassblock');
     
     const savedUser = localStorage.getItem('pangpang-user');
     if (savedUser) {

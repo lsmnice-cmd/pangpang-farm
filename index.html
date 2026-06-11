@@ -71,6 +71,11 @@
                     <span class="menu-text">퍼즐 시작</span>
                     <span class="menu-sub">하트 1개 사용</span>
                 </button>
+                <button class="menu-btn menu-battle" onclick="goToBattle()">
+                    <span class="menu-icon">⚔️</span>
+                    <span class="menu-text">배틀</span>
+                    <span class="menu-sub">이기면 하트 +1</span>
+                </button>
                 <button class="menu-btn menu-contest" disabled>
                     <span class="menu-icon">🏆</span>
                     <span class="menu-text">먹방대회</span>
@@ -111,6 +116,21 @@
                 <div class="puzzle-mini-fence"></div>
                 <div class="dropped-crops-layer" id="dropped-crops-layer"></div>
                 <div class="puzzle-active-spot" id="puzzle-active-spot">🐤</div>
+            </div>
+
+            <!-- 배틀 점수판 (배틀 모드에서만 표시) -->
+            <div class="battle-panel" id="battle-panel">
+                <div class="battle-side me">
+                    <div class="battle-label">나</div>
+                    <div class="battle-name" id="battle-my-name">나</div>
+                    <div class="battle-score" id="battle-my-score">0</div>
+                </div>
+                <div class="battle-vs">VS</div>
+                <div class="battle-side opp">
+                    <div class="battle-label">상대</div>
+                    <div class="battle-name" id="battle-opp-name">상대</div>
+                    <div class="battle-score" id="battle-opp-score">0</div>
+                </div>
             </div>
 
             <!-- 보드 + 콤보 게이지 영역 -->
@@ -242,7 +262,7 @@
                     🗑️ 데이터 초기화
                 </button>
                 <div class="settings-info">
-                    <p>버전 0.8 (개발 중)</p>
+                    <p>버전 0.10 (배틀 모드)</p>
                 </div>
             </div>
             <div class="modal-buttons">
@@ -281,6 +301,53 @@
             <p>내일 다시 먹이를 줄 수 있어요</p>
             <div class="modal-buttons">
                 <button class="btn-roulette" onclick="closeFull()">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 배틀 매칭 오버레이 -->
+    <div class="modal-overlay" id="mm-overlay">
+        <div class="modal">
+            <div class="modal-emoji">⚔️</div>
+            <h2>배틀 매칭</h2>
+            <div class="spinner" style="margin: 4px auto 12px;"></div>
+            <p id="mm-status" style="white-space:pre-line;">상대를 찾는 중...</p>
+            <p style="font-size:12px; color:#bbb; margin-top:4px;">매치 1번 = 상대 보드에 돌멩이 🪨 1개!<br>10초 안에 상대가 없으면 컴퓨터와 대결해요</p>
+            <div class="modal-buttons">
+                <button class="btn-upgrade" onclick="cancelMatchmaking()">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 배틀 결과 오버레이 -->
+    <div class="modal-overlay" id="battle-result-overlay">
+        <div class="modal">
+            <div class="modal-emoji" id="battle-result-emoji">🏆</div>
+            <h2 id="battle-result-title">승리!</h2>
+            <p id="battle-result-score" style="font-size:26px; font-weight:bold; color:#6B4423; margin:4px 0;">0 : 0</p>
+            <p id="battle-result-desc"></p>
+            <div class="modal-buttons">
+                <button class="btn-roulette" onclick="closeBattleResult()">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 로딩 오버레이 (서버 통신 중) -->
+    <div class="modal-overlay" id="loading-overlay">
+        <div class="loading-box">
+            <div class="spinner"></div>
+            <p id="loading-text">불러오는 중...</p>
+        </div>
+    </div>
+
+    <!-- 서버 연결 오류 오버레이 -->
+    <div class="modal-overlay" id="conn-error-overlay">
+        <div class="modal">
+            <div class="modal-emoji">📡</div>
+            <h2>서버에 연결할 수 없어요</h2>
+            <p>네트워크 상태를 확인한 뒤<br>다시 시도해주세요</p>
+            <div class="modal-buttons">
+                <button class="btn-roulette" onclick="retryBoot()">🔄 다시 시도</button>
             </div>
         </div>
     </div>
