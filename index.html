@@ -35,13 +35,13 @@
         <!-- 메인 화면 -->
         <div class="screen screen-main" id="screen-main">
             <header class="main-header">
-                <h1>🌾 팡팡 농장</h1>
+                <h1><span class="icon" data-icon="grassblock"></span> 팡팡 농장</h1>
                 <div class="header-right">
                     <div class="user-info" id="user-info">
                         <span id="user-name-display">게스트</span>
                     </div>
                     <div class="heart-box">
-                        <span>❤️</span>
+                        <span class="icon" data-icon="heart"></span>
                         <span id="heart-count-main">3</span>
                     </div>
                 </div>
@@ -62,27 +62,27 @@
             </div>
 
             <div class="main-info">
-                <div>🏡 농장: <span id="slot-count-main">0</span> / 5</div>
+                <div><span class="icon" data-icon="grassblock"></span> 농장: <span id="slot-count-main">0</span> / 5</div>
             </div>
 
             <div class="main-menu">
                 <button class="menu-btn menu-puzzle" onclick="goToPuzzle()">
-                    <span class="menu-icon">🎮</span>
+                    <span class="menu-icon icon" data-icon="gamepad"></span>
                     <span class="menu-text">퍼즐 시작</span>
                     <span class="menu-sub">하트 1개 사용</span>
                 </button>
                 <button class="menu-btn menu-battle" onclick="goToBattle()">
-                    <span class="menu-icon">⚔️</span>
+                    <span class="menu-icon icon" data-icon="sword"></span>
                     <span class="menu-text">배틀</span>
                     <span class="menu-sub">이기면 하트 +1</span>
                 </button>
                 <button class="menu-btn menu-contest" disabled>
-                    <span class="menu-icon">🏆</span>
+                    <span class="menu-icon icon" data-icon="trophy"></span>
                     <span class="menu-text">먹방대회</span>
                     <span class="menu-sub">준비중</span>
                 </button>
                 <button class="menu-btn menu-settings" onclick="openSettings()">
-                    <span class="menu-icon">⚙️</span>
+                    <span class="menu-icon icon" data-icon="gear"></span>
                     <span class="menu-text">설정</span>
                     <span class="menu-sub">관리/도움말</span>
                 </button>
@@ -118,18 +118,20 @@
                 <div class="puzzle-active-spot" id="puzzle-active-spot">🐤</div>
             </div>
 
-            <!-- 배틀 점수판 (배틀 모드에서만 표시) -->
+            <!-- 배틀 점수판 + 상대 보드 실시간 표시 (배틀 모드에서만) -->
             <div class="battle-panel" id="battle-panel">
-                <div class="battle-side me">
+                <div class="battle-info-col">
                     <div class="battle-label">나</div>
                     <div class="battle-name" id="battle-my-name">나</div>
                     <div class="battle-score" id="battle-my-score">0</div>
-                </div>
-                <div class="battle-vs">VS</div>
-                <div class="battle-side opp">
-                    <div class="battle-label">상대</div>
+                    <div class="battle-vs">VS</div>
+                    <div class="battle-score opp" id="battle-opp-score">0</div>
                     <div class="battle-name" id="battle-opp-name">상대</div>
-                    <div class="battle-score" id="battle-opp-score">0</div>
+                    <div class="battle-label">상대</div>
+                </div>
+                <div class="battle-opp-wrap">
+                    <div class="opp-board-title"><span class="live-dot"></span> 상대 보드</div>
+                    <div class="opp-board" id="opp-board"></div>
                 </div>
             </div>
 
@@ -148,15 +150,14 @@
                         <div class="combo-gauge-text" id="combo-gauge-text">0/10</div>
                     </div>
                     <button class="btn-bomb" id="btn-bomb" onclick="useBomb()" disabled>
-                        💣
-                        <span class="bomb-label">폭탄</span>
+                        <span class="icon" data-icon="bomb"></span><span class="bomb-label">폭탄</span>
                     </button>
                 </div>
             </div>
 
             <div class="timer-gauge-wrap">
                 <div class="timer-gauge-label">
-                    ⏱️ <span id="timer-text">90</span>초
+                    <span class="icon" data-icon="clock"></span> <span id="timer-text">90</span>초
                 </div>
                 <div class="timer-gauge-bg">
                     <div class="timer-gauge-fill" id="timer-gauge-fill"></div>
@@ -164,7 +165,7 @@
             </div>
 
             <button class="btn-hint" onclick="useHint()">
-                💡 힌트 (3/3)
+                <span class="icon" data-icon="bulb"></span> 힌트 (3/3)
             </button>
         </div>
 
@@ -203,7 +204,7 @@
     <!-- 모달들 -->
     <div class="modal-overlay" id="name-overlay">
         <div class="modal">
-            <div class="modal-emoji">🐤</div>
+            <div class="modal-emoji" data-icon="chick"></div>
             <h2>환영해요!</h2>
             <p>첫 병아리에게 이름을 지어주세요</p>
             <input type="text" id="animal-name-input" maxlength="10" placeholder="예: 뿌약이">
@@ -262,7 +263,7 @@
                     🗑️ 데이터 초기화
                 </button>
                 <div class="settings-info">
-                    <p>버전 0.10 (배틀 모드)</p>
+                    <p>버전 0.12 (퍼즐 정교화)</p>
                 </div>
             </div>
             <div class="modal-buttons">
@@ -285,7 +286,7 @@
 
     <div class="modal-overlay" id="no-heart-overlay">
         <div class="modal">
-            <div class="modal-emoji">💔</div>
+            <div class="modal-emoji" data-icon="heartbreak"></div>
             <h2>하트가 부족해요</h2>
             <p>매일 자정에 하트 3개가 충전돼요</p>
             <div class="modal-buttons">
@@ -308,7 +309,7 @@
     <!-- 배틀 매칭 오버레이 -->
     <div class="modal-overlay" id="mm-overlay">
         <div class="modal">
-            <div class="modal-emoji">⚔️</div>
+            <div class="modal-emoji" data-icon="sword"></div>
             <h2>배틀 매칭</h2>
             <div class="spinner" style="margin: 4px auto 12px;"></div>
             <p id="mm-status" style="white-space:pre-line;">상대를 찾는 중...</p>

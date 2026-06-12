@@ -2,7 +2,9 @@
 // 네이버 로그인
 // ============================================
 const NAVER_CLIENT_ID = 'F4KAOrNX_NAYeUvnbEgI';
-const NAVER_CALLBACK_URL = window.location.origin + window.location.pathname;
+// 콜백 URL 고정: 접속 경로(/index.html 유무 등)와 무관하게 항상 이 주소 사용
+// → 네이버 개발자센터에는 이 주소 하나만 Callback URL로 등록하면 됨
+const NAVER_CALLBACK_URL = 'https://lsmnice-cmd.github.io/pangpang-farm/';
 
 let naverLogin = null;
 let currentUser = null;
@@ -848,6 +850,211 @@ const SPRITES = {
             '.....WWWW.......'
         ]
     },
+    // ---- UI 아이콘 (v0.11 픽셀 테마) ----
+    heart: {
+        p: { R: '#FF5C7A', D: '#D63B5B', W: '#FFD1DB' },
+        g: [
+            '................',
+            '..RRR....RRR....',
+            '.RRRRR..RRRRR...',
+            '.RWWRRRRRRRRR...',
+            '.RWRRRRRRRRRD...',
+            '.RRRRRRRRRRRD...',
+            '..RRRRRRRRRD....',
+            '...RRRRRRRD.....',
+            '....RRRRRD......',
+            '.....RRRD.......',
+            '......RD........',
+            '................'
+        ]
+    },
+    heartbreak: {
+        p: { R: '#FF5C7A', D: '#D63B5B' },
+        g: [
+            '................',
+            '..RRR....RRR....',
+            '.RRRRR..RRRRR...',
+            '.RRRR.RRRRRRR...',
+            '.RRRRR.RRRRRD...',
+            '.RRRR.RRRRRRD...',
+            '..RRRR.RRRRD....',
+            '...RRR.RRRD.....',
+            '....RR.RRD......',
+            '.....R.RD.......',
+            '......R.........',
+            '................'
+        ]
+    },
+    sword: {
+        p: { B: '#AEB6C8', W: '#F0F4FF', G: '#FFB300', H: '#7A5230' },
+        g: [
+            '..........WW....',
+            '.........WBB....',
+            '........WBB.....',
+            '.......WBB......',
+            '......WBB.......',
+            '.....WBB........',
+            '..G.WBB.........',
+            '..GGBB..........',
+            '..GGG...........',
+            '.HHGG...........',
+            '.HH..G..........',
+            '................'
+        ]
+    },
+    gamepad: {
+        p: { P: '#9C8ADE', D: '#7B68C4', K: '#4A2F17', R: '#FF5C7A', Y: '#FFD93B' },
+        g: [
+            '................',
+            '..PPPP....PPPP..',
+            '.PPPPPPPPPPPPPP.',
+            '.PPKPPPPPPPPYPP.',
+            '.PKKKPPPPPYPPYP.',
+            '.PPKPPPPPPPPYPP.',
+            '.PPPPPPPPPPPPPP.',
+            '.PPPDD....DDPPP.',
+            '................'
+        ]
+    },
+    trophy: {
+        p: { G: '#FFD93B', D: '#E0A800', B: '#8A5A3B' },
+        g: [
+            '.GGGGGGGGGGGG...',
+            '.G.GGGGGGGG.G...',
+            '.G.GGGGGGGG.G...',
+            '..GGGGGGGGGG....',
+            '...GGGGGGGG.....',
+            '....GGGGGG......',
+            '.....GDDG.......',
+            '......GG........',
+            '......GG........',
+            '....GGGGGG......',
+            '...BBBBBBBB.....'
+        ]
+    },
+    gear: {
+        p: { S: '#9AA0A6', D: '#6B7075' },
+        g: [
+            '.....SS..SS.....',
+            '..SS.SSSSSS.SS..',
+            '..SSSSSSSSSSSS..',
+            '...SSSS..SSSS...',
+            '.SSSSS....SSSSS.',
+            '.SSSS......SSSS.',
+            '.SSSS......SSSS.',
+            '.SSSSS....SSSSS.',
+            '...SSSS..SSSS...',
+            '..SSSSSSSSSSSD..',
+            '..SS.SSSSSS.SS..',
+            '.....SS..SS.....'
+        ]
+    },
+    bulb: {
+        p: { Y: '#FFE066', W: '#FFF6C9', S: '#9AA0A6', D: '#E0A800' },
+        g: [
+            '.....YYYY.......',
+            '....YYYYYY......',
+            '...YYWYYYYY.....',
+            '...YWYYYYYY.....',
+            '...YYYYYYYD.....',
+            '....YYYYYD......',
+            '.....YYYY.......',
+            '.....SSSS.......',
+            '.....SSSS.......',
+            '......SS........'
+        ]
+    },
+    bomb: {
+        p: { K: '#2E2E2E', W: '#5A5A5A', T: '#C97A3D', S: '#FFD93B' },
+        g: [
+            '.........S......',
+            '........TT......',
+            '.......T........',
+            '....KKKK........',
+            '...KKKKKK.......',
+            '..KKWKKKKK......',
+            '..KWKKKKKK......',
+            '..KKKKKKKK......',
+            '..KKKKKKKK......',
+            '...KKKKKK.......',
+            '....KKKK........'
+        ]
+    },
+    clock: {
+        p: { B: '#8A5A3B', W: '#FFF7E6', K: '#4A2F17', R: '#FF5C7A' },
+        g: [
+            '....BBBBBB......',
+            '...BWWWWWWB.....',
+            '..BWWWKWWWWB....',
+            '..BWWWKWWWWB....',
+            '..BWWWKKKWWB....',
+            '..BWWWWWWWWB....',
+            '..BWWWWWWWWB....',
+            '...BWWWWWWB.....',
+            '....BBBBBB......'
+        ]
+    },
+    star: {
+        p: { Y: '#FFD93B', D: '#E0A800' },
+        g: [
+            '.......Y........',
+            '......YYY.......',
+            '......YYY.......',
+            '.YYYYYYYYYYYYY..',
+            '..YYYYYYYYYYY...',
+            '....YYYYYYY.....',
+            '...YYYYYYYYY....',
+            '...YYYY.YYYD....',
+            '..YYY.....YDD...'
+        ]
+    },
+    // ---- 특수 블록 (v0.12 퍼즐 정교화) ----
+    rocket_h: {
+        p: { W: '#E8ECF4', D: '#B8C0D0', R: '#FF5C7A', B: '#7EC8E3', Y: '#FFD93B' },
+        g: [
+            '................',
+            '....BB..........',
+            '..WWWWWWWWWRR...',
+            '.YWWWWWWWWWWRR..',
+            '.YYWWWWWWWWWWRR.',
+            '.YWWWWWWWWWWRR..',
+            '..WWDDDDDDWRR...',
+            '....BB..........',
+            '................'
+        ]
+    },
+    rocket_v: {
+        p: { W: '#E8ECF4', D: '#B8C0D0', R: '#FF5C7A', B: '#7EC8E3', Y: '#FFD93B' },
+        g: [
+            '.......RR.......',
+            '......RRRR......',
+            '......WWWW......',
+            '......WWWD......',
+            '......WWWD......',
+            '......WWWD......',
+            '....B.WWWD.B....',
+            '....BBWWWDBB....',
+            '......YYYY......',
+            '.......YY.......'
+        ]
+    },
+    rainbow: {
+        p: { R: '#FF5C7A', O: '#FFB347', Y: '#FFD93B', G: '#7CC47C', B: '#7EC8E3', W: '#FFFFFF' },
+        g: [
+            '....RRRRRRRR....',
+            '...ROOOOOOOOR...',
+            '..ROYYYYYYYYOR..',
+            '..ROYGGGGGGYOR..',
+            '..ROYGBBBBGYOR..',
+            '..ROYGBWWBGYOR..',
+            '..ROYGBWWBGYOR..',
+            '..ROYGBBBBGYOR..',
+            '..ROYGGGGGGYOR..',
+            '..ROYYYYYYYYOR..',
+            '...ROOOOOOOOR...',
+            '....RRRRRRRR....'
+        ]
+    },
     // ---- 배틀용 돌멩이 (코블스톤) ----
     stone: {
         p: { G: '#9E9E9E', D: '#757575', L: '#BDBDBD', K: '#616161' },
@@ -984,7 +1191,36 @@ let mmPollTimer = null;
 let mmActive = false;
 let mmStartTs = 0;
 
+let botBoard = null;            // 봇의 실제 보드 (실시간 표시용)
+
 const STONE = { id: 'stone', emoji: '🪨', name: '돌멩이' };
+
+// 특수 블록: 4매치 → 로켓(줄 제거), 5매치/십자 → 무지개 별(같은 작물 전체 제거)
+const ROCKET_H = { id: 'rocket_h', name: '가로 로켓' };
+const ROCKET_V = { id: 'rocket_v', name: '세로 로켓' };
+const RAINBOW = { id: 'rainbow', name: '무지개 별' };
+const SPECIAL_IDS = ['rocket_h', 'rocket_v', 'rainbow'];
+
+function isSpecial(p) { return !!p && SPECIAL_IDS.includes(p.id); }
+function isStonePiece(p) { return !!p && p.id === 'stone'; }
+function isCrop(p) { return !!p && !isSpecial(p) && !isStonePiece(p); }
+function keyOf(r, c) { return r + '-' + c; }
+function cellEl(r, c) { return boardElement.children[r * BOARD_SIZE + c]; }
+
+// 보드 직렬화 (PvP 폴링 때 36글자 문자열로 주고받음)
+const BOARD_CODE = { apple: 'a', banana: 'b', tomato: 't', corn: 'c', cucumber: 'u', eggplant: 'e', onion: 'o', grape: 'g', garlic: 'l', stone: 'S' };
+const CODE_TO_ID = {};
+Object.keys(BOARD_CODE).forEach(k => { CODE_TO_ID[BOARD_CODE[k]] = k; });
+
+function encodeBoard(b) {
+    let s = '';
+    for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+            s += (b[r] && b[r][c]) ? (BOARD_CODE[b[r][c].id] || '.') : '.';
+        }
+    }
+    return s;
+}
 const BATTLE_CROP_IDS = ['apple', 'banana', 'tomato', 'corn', 'cucumber', 'eggplant'];
 const BATTLE_TIME = 90;
 const MM_BOT_FALLBACK_MS = 10000;  // 10초 안에 상대 없으면 봇
@@ -1381,6 +1617,7 @@ function startPuzzleSession() {
     initActiveAnimalPosition();
     board = createBoard();
     renderBoard();
+    if (findHintCandidates().length === 0) reshuffleBoard(); // 시작부터 막힌 보드 방지
     startTimer();
     startActiveAnimalWandering();
     startBGM();
@@ -1463,7 +1700,7 @@ function triggerBombEffect() {
     const cropsOnBoard = {};
     for (let row = 0; row < BOARD_SIZE; row++) {
         for (let col = 0; col < BOARD_SIZE; col++) {
-            if (board[row][col]) {
+            if (isCrop(board[row][col])) { // 작물만 폭파 대상 (돌멩이/특수 블록 제외)
                 const id = board[row][col].id;
                 if (!cropsOnBoard[id]) cropsOnBoard[id] = [];
                 cropsOnBoard[id].push({row, col});
@@ -1647,11 +1884,12 @@ function useHint() {
 function updateHintButton() {
     const btn = document.querySelector('.btn-hint');
     if (!btn) return;
+    const icon = spriteTag('bulb', 'inline-pix');
     if (sessionHintsLeft > 0) {
-        btn.textContent = '💡 힌트 (' + sessionHintsLeft + '/3)';
+        btn.innerHTML = icon + ' 힌트 (' + sessionHintsLeft + '/3)';
         btn.classList.remove('hint-paid');
     } else {
-        btn.textContent = '💡 힌트 (-' + HINT_TIME_COST + '초)';
+        btn.innerHTML = icon + ' 힌트 (-' + HINT_TIME_COST + '초)';
         btn.classList.add('hint-paid');
     }
 }
@@ -1663,15 +1901,15 @@ function findHintCandidates() {
         for (let col = 0; col < BOARD_SIZE; col++) {
             if (isStone(row, col)) continue; // 돌멩이는 움직일 수 없으니 힌트 제외
             if (col < BOARD_SIZE - 1 && !isStone(row, col + 1)) {
-                swap(row, col, row, col + 1);
+                swapOn(board, row, col, row, col + 1);
                 const matches = findMatches();
-                swap(row, col, row, col + 1);
+                swapOn(board, row, col, row, col + 1);
                 if (matches.length > 0) results.push([{row, col}, {row, col: col + 1}]);
             }
             if (row < BOARD_SIZE - 1 && !isStone(row + 1, col)) {
-                swap(row, col, row + 1, col);
+                swapOn(board, row, col, row + 1, col);
                 const matches = findMatches();
-                swap(row, col, row + 1, col);
+                swapOn(board, row, col, row + 1, col);
                 if (matches.length > 0) results.push([{row, col}, {row: row + 1, col}]);
             }
         }
@@ -1706,7 +1944,7 @@ function createBoard() {
     return nb;
 }
 
-function renderBoard() {
+function renderBoard(falls) {
     if (!boardElement) return;
     boardElement.innerHTML = '';
     for (let row = 0; row < BOARD_SIZE; row++) {
@@ -1720,48 +1958,162 @@ function renderBoard() {
             }
             cell.dataset.row = row;
             cell.dataset.col = col;
-            cell.addEventListener('click', () => handleCellClick(row, col));
+            // 낙하 애니메이션: 떨어진 칸 수만큼 위에서 떨어져 내려옴
+            if (falls && falls[row] && falls[row][col] > 0) {
+                cell.style.setProperty('--fd', falls[row][col]);
+                cell.classList.add('fall');
+            }
             boardElement.appendChild(cell);
         }
     }
 }
 
-function handleCellClick(row, col) {
+// 입력 위임: 탭(두 번 눌러 교환) + 스와이프(끌어서 교환) 모두 지원
+let dragStart = null;
+
+function initBoardInput() {
+    if (!boardElement) return;
+    boardElement.style.touchAction = 'none'; // 보드 위 스와이프 시 화면 스크롤 방지
+
+    boardElement.addEventListener('pointerdown', (e) => {
+        const cell = e.target.closest('.cell');
+        if (!cell) return;
+        dragStart = {
+            row: +cell.dataset.row, col: +cell.dataset.col,
+            x: e.clientX, y: e.clientY, moved: false
+        };
+    });
+
+    boardElement.addEventListener('pointermove', (e) => {
+        if (!dragStart || dragStart.moved) return;
+        const dx = e.clientX - dragStart.x;
+        const dy = e.clientY - dragStart.y;
+        if (Math.hypot(dx, dy) < 18) return; // 스와이프 판정 임계값
+        dragStart.moved = true;
+        let dr = 0, dc = 0;
+        if (Math.abs(dx) > Math.abs(dy)) dc = dx > 0 ? 1 : -1;
+        else dr = dy > 0 ? 1 : -1;
+        const r2 = dragStart.row + dr, c2 = dragStart.col + dc;
+        if (r2 < 0 || c2 < 0 || r2 >= BOARD_SIZE || c2 >= BOARD_SIZE) return;
+        clearSelection();
+        attemptSwap(dragStart.row, dragStart.col, r2, c2);
+    });
+
+    window.addEventListener('pointerup', () => {
+        if (dragStart && !dragStart.moved) handleCellTap(dragStart.row, dragStart.col);
+        dragStart = null;
+    });
+}
+
+function clearSelection() {
+    if (selectedCell) {
+        highlightCell(selectedCell.row, selectedCell.col, false);
+        selectedCell = null;
+    }
+}
+
+function handleCellTap(row, col) {
     if (isLocked) return;
     if (puzzleTimer <= 0) return;
 
-    // 돌멩이는 선택할 수 없음
-    if (board[row][col] && board[row][col].id === 'stone') {
-        if (selectedCell !== null) {
-            highlightCell(selectedCell.row, selectedCell.col, false);
-            selectedCell = null;
-        }
-        return;
-    }
+    const p = board[row][col];
+    if (isStonePiece(p)) { clearSelection(); return; } // 돌멩이는 선택 불가
 
     if (selectedCell === null) {
         selectedCell = { row, col };
         highlightCell(row, col, true);
-    } else {
-        const prev = selectedCell;
-        highlightCell(prev.row, prev.col, false);
-
-        if (prev.row === row && prev.col === col) {
-            selectedCell = null;
-            return;
-        }
-
-        if (isAdjacent(prev, { row, col })) {
-            swap(prev.row, prev.col, row, col);
-            if (findMatches().length > 0) {
-                comboCount = 0;
-                processMatches();
-            } else {
-                swap(prev.row, prev.col, row, col);
-            }
-        }
-        selectedCell = null;
+        return;
     }
+
+    const prev = selectedCell;
+    highlightCell(prev.row, prev.col, false);
+    selectedCell = null;
+    if (prev.row === row && prev.col === col) return;
+
+    if (isAdjacent(prev, { row, col })) {
+        attemptSwap(prev.row, prev.col, row, col);
+    } else {
+        // 멀리 떨어진 칸을 누르면 새로 선택 (편의성)
+        selectedCell = { row, col };
+        highlightCell(row, col, true);
+    }
+}
+
+function attemptSwap(r1, c1, r2, c2) {
+    if (isLocked || puzzleTimer <= 0) return;
+    const A = board[r1][c1];
+    const B = board[r2][c2];
+    if (!A || !B) return;
+
+    if (isStonePiece(A) || isStonePiece(B)) {
+        animateInvalid(r1, c1, r2, c2);
+        return;
+    }
+
+    // 특수 블록이 끼면 매치 없이도 발동
+    if (isSpecial(A) || isSpecial(B)) {
+        isLocked = true;
+        animateSwap(r1, c1, r2, c2, () => {
+            swapOn(board, r1, c1, r2, c2);
+            renderBoard();
+            isLocked = false;
+            comboCount = 0;
+            executeSpecialSwap(r2, c2, r1, c1); // 스왑 후 A는 (r2,c2)에 있음
+        });
+        return;
+    }
+
+    // 일반 스왑: 매치가 생기는지 먼저 확인
+    swapOn(board, r1, c1, r2, c2);
+    const valid = findMatchesOn(board).length > 0;
+    swapOn(board, r1, c1, r2, c2); // 원복
+
+    if (valid) {
+        isLocked = true;
+        animateSwap(r1, c1, r2, c2, () => {
+            swapOn(board, r1, c1, r2, c2);
+            renderBoard();
+            isLocked = false;
+            comboCount = 0;
+            processMatches({ row: r2, col: c2 }); // 스왑 도착 지점에 특수 블록 생성
+        });
+    } else {
+        animateInvalid(r1, c1, r2, c2); // 흔들리며 제자리로
+    }
+}
+
+// 두 칸이 서로 자리를 바꾸는 연출
+function animateSwap(r1, c1, r2, c2, done) {
+    const a = cellEl(r1, c1);
+    const b = cellEl(r2, c2);
+    if (!a || !b) { done(); return; }
+    const ar = a.getBoundingClientRect();
+    const br = b.getBoundingClientRect();
+    const dx = br.left - ar.left;
+    const dy = br.top - ar.top;
+    a.style.transition = 'transform 0.15s ease';
+    b.style.transition = 'transform 0.15s ease';
+    a.style.zIndex = '3';
+    a.style.transform = `translate(${dx}px, ${dy}px)`;
+    b.style.transform = `translate(${-dx}px, ${-dy}px)`;
+    setTimeout(done, 160);
+}
+
+// 잘못된 스왑: 갔다가 흔들리며 돌아옴
+function animateInvalid(r1, c1, r2, c2) {
+    isLocked = true;
+    animateSwap(r1, c1, r2, c2, () => {
+        const a = cellEl(r1, c1);
+        const b = cellEl(r2, c2);
+        if (a) a.style.transform = '';
+        if (b) b.style.transform = '';
+        setTimeout(() => {
+            if (a) a.classList.add('shake');
+            if (b) b.classList.add('shake');
+            playMatchSound();
+            setTimeout(() => { renderBoard(); isLocked = false; }, 280);
+        }, 160);
+    });
 }
 
 function isAdjacent(a, b) {
@@ -1779,20 +2131,28 @@ function highlightCell(row, col, on) {
 }
 
 function swap(r1, c1, r2, c2) {
-    const t = board[r1][c1];
-    board[r1][c1] = board[r2][c2];
-    board[r2][c2] = t;
+    swapOn(board, r1, c1, r2, c2);
     renderBoard();
 }
 
+function swapOn(b, r1, c1, r2, c2) {
+    const t = b[r1][c1];
+    b[r1][c1] = b[r2][c2];
+    b[r2][c2] = t;
+}
+
 function findMatches() {
+    return findMatchesOn(board);
+}
+
+function findMatchesOn(board) {
     const matched = [];
     const seen = new Set();
     const add = (row, col) => {
         const k = row + '-' + col;
         if (!seen.has(k)) { seen.add(k); matched.push({row, col}); }
     };
-    const same = (a, b) => a && b && a.id === b.id && a.id !== 'stone';
+    const same = (a, b) => a && b && a.id === b.id && isCrop(a); // 돌멩이/특수블록은 매치 제외
 
     for (let row = 0; row < BOARD_SIZE; row++) {
         for (let col = 0; col <= BOARD_SIZE - 3; col++) {
@@ -1819,45 +2179,205 @@ function findMatches() {
     return matched;
 }
 
-function processMatches() {
-    const matches = findMatches();
-    if (matches.length === 0) return;
+// ============================================
+// 매치 해석 파이프라인 (v0.12)
+// findRunsOn: 연속 3개 이상 "런" 목록 → 특수 블록 생성 계획 → executeClear
+// ============================================
+function findRunsOn(b) {
+    const runs = [];
+    // 가로
+    for (let row = 0; row < BOARD_SIZE; row++) {
+        let col = 0;
+        while (col < BOARD_SIZE) {
+            const p = b[row][col];
+            if (!isCrop(p)) { col++; continue; }
+            let end = col;
+            while (end + 1 < BOARD_SIZE && b[row][end + 1] && b[row][end + 1].id === p.id) end++;
+            if (end - col >= 2) {
+                const cells = [];
+                for (let k = col; k <= end; k++) cells.push({ row, col: k });
+                runs.push({ cells, dir: 'h', id: p.id });
+            }
+            col = end + 1;
+        }
+    }
+    // 세로
+    for (let col = 0; col < BOARD_SIZE; col++) {
+        let row = 0;
+        while (row < BOARD_SIZE) {
+            const p = b[row][col];
+            if (!isCrop(p)) { row++; continue; }
+            let end = row;
+            while (end + 1 < BOARD_SIZE && b[end + 1][col] && b[end + 1][col].id === p.id) end++;
+            if (end - row >= 2) {
+                const cells = [];
+                for (let k = row; k <= end; k++) cells.push({ row: k, col });
+                runs.push({ cells, dir: 'v', id: p.id });
+            }
+            row = end + 1;
+        }
+    }
+    return runs;
+}
+
+function processMatches(swapPos) {
+    const runs = findRunsOn(board);
+    if (runs.length === 0) return;
+
+    // ---- 특수 블록 생성 계획 ----
+    const spawnList = [];
+    const usedRuns = new Set();
+
+    // 1) 십자/L자 교차 (가로 런 + 세로 런이 한 칸 공유) → 무지개 별
+    const hMap = {}, vMap = {};
+    runs.forEach((run, i) => {
+        run.cells.forEach(({ row, col }) => {
+            const k = keyOf(row, col);
+            if (run.dir === 'h') hMap[k] = i; else vMap[k] = i;
+        });
+    });
+    Object.keys(hMap).forEach(k => {
+        if (vMap[k] !== undefined && !usedRuns.has(hMap[k]) && !usedRuns.has(vMap[k])) {
+            const [r, c] = k.split('-').map(Number);
+            spawnList.push({ row: r, col: c, piece: RAINBOW });
+            usedRuns.add(hMap[k]);
+            usedRuns.add(vMap[k]);
+        }
+    });
+
+    // 2) 단일 런: 5개 이상 → 무지개 별, 정확히 4개 → 로켓(런 방향대로)
+    runs.forEach((run, i) => {
+        if (usedRuns.has(i)) return;
+        if (run.cells.length >= 5) {
+            const pos = pickSpawnCell(run, swapPos);
+            spawnList.push({ row: pos.row, col: pos.col, piece: RAINBOW });
+        } else if (run.cells.length === 4) {
+            const pos = pickSpawnCell(run, swapPos);
+            spawnList.push({ row: pos.row, col: pos.col, piece: run.dir === 'h' ? ROCKET_H : ROCKET_V });
+        }
+    });
+
+    const seed = new Set();
+    runs.forEach(run => run.cells.forEach(({ row, col }) => seed.add(keyOf(row, col))));
+    executeClear(seed, spawnList, swapPos);
+}
+
+// 특수 블록이 생길 위치: 스왑한 칸이 런에 포함되면 그 칸, 아니면 런 가운데
+function pickSpawnCell(run, swapPos) {
+    if (swapPos) {
+        const k = keyOf(swapPos.row, swapPos.col);
+        if (run.cells.some(c => keyOf(c.row, c.col) === k)) return swapPos;
+    }
+    return run.cells[Math.floor(run.cells.length / 2)];
+}
+
+// 특수 블록 연쇄 확장: 제거 대상에 특수 블록이 있으면 그 효과 범위도 함께 제거
+function expandSpecials(seedSet) {
+    const set = new Set(seedSet);
+    const queue = [...seedSet];
+    let guard = 0;
+    while (queue.length && guard++ < 200) {
+        const k = queue.shift();
+        const [r, c] = k.split('-').map(Number);
+        const p = board[r] && board[r][c];
+        if (!p) continue;
+        const extra = [];
+        if (p.id === 'rocket_h') {
+            for (let cc = 0; cc < BOARD_SIZE; cc++) extra.push(keyOf(r, cc));
+        } else if (p.id === 'rocket_v') {
+            for (let rr = 0; rr < BOARD_SIZE; rr++) extra.push(keyOf(rr, c));
+        } else if (p.id === 'rainbow') {
+            const target = mostCommonCropId();
+            if (target) {
+                for (let rr = 0; rr < BOARD_SIZE; rr++) {
+                    for (let cc = 0; cc < BOARD_SIZE; cc++) {
+                        if (board[rr][cc] && board[rr][cc].id === target) extra.push(keyOf(rr, cc));
+                    }
+                }
+            }
+        }
+        extra.forEach(k2 => { if (!set.has(k2)) { set.add(k2); queue.push(k2); } });
+    }
+    return set;
+}
+
+function mostCommonCropId() {
+    const count = {};
+    for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+            const p = board[r][c];
+            if (isCrop(p)) count[p.id] = (count[p.id] || 0) + 1;
+        }
+    }
+    let best = null, n = 0;
+    Object.keys(count).forEach(id => { if (count[id] > n) { n = count[id]; best = id; } });
+    return best;
+}
+
+// 특수 블록 스왑 발동 (무지개: 상대 작물 전체, 로켓: 줄 — expandSpecials가 처리)
+function executeSpecialSwap(rA, cA, rB, cB) {
+    const A = board[rA][cA];
+    const B = board[rB][cB];
+    const seed = new Set();
+
+    function trigger(p, r, c, other) {
+        seed.add(keyOf(r, c));
+        if (p.id === 'rainbow') {
+            // 스왑 상대가 작물이면 그 작물 전체, 아니면 가장 많은 작물
+            const target = isCrop(other) ? other.id : mostCommonCropId();
+            if (target) {
+                for (let rr = 0; rr < BOARD_SIZE; rr++) {
+                    for (let cc = 0; cc < BOARD_SIZE; cc++) {
+                        if (board[rr][cc] && board[rr][cc].id === target) seed.add(keyOf(rr, cc));
+                    }
+                }
+            }
+        }
+    }
+
+    if (isSpecial(A)) trigger(A, rA, cA, B);
+    if (isSpecial(B)) trigger(B, rB, cB, A);
+    if (seed.size === 0) return;
+    executeClear(seed, [], { row: rA, col: cA });
+}
+
+// ---- 공용 제거 파이프라인: 연출 → 제거 → 특수 생성 → 낙하 → 연쇄 ----
+function executeClear(seedSet, spawnList, focusPos) {
+    const clearSet = expandSpecials(seedSet);
+
+    // 배틀: 제거 대상에 인접한 돌멩이도 함께 파괴
+    if (battleMode) {
+        const adj = [];
+        clearSet.forEach(k => {
+            const [r, c] = k.split('-').map(Number);
+            [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dr, dc]) => {
+                const rr = r + dr, cc = c + dc;
+                if (rr < 0 || cc < 0 || rr >= BOARD_SIZE || cc >= BOARD_SIZE) return;
+                const kk = keyOf(rr, cc);
+                if (!clearSet.has(kk) && board[rr][cc] && board[rr][cc].id === 'stone') adj.push(kk);
+            });
+        });
+        adj.forEach(k => clearSet.add(k));
+    }
+
+    const tiles = clearSet.size;
+    if (tiles === 0) return;
 
     comboCount++;
-      if (comboCount >= 2) {
-        cumulativeCombo++;
-    }
+    if (comboCount >= 2) cumulativeCombo++;
     sessionMatches++;
     if (comboCount > sessionMaxCombo) sessionMaxCombo = comboCount;
 
-    // 배틀: 매치 1회 = 상대에게 돌멩이 1개 (3콤보 이상은 +1)
+    // 매치 크기에 따른 보상 차등: 3개 = 5 EXP, 한 칸 늘 때마다 +2 (최대 40)
+    const expGain = Math.min(40, MATCH_BASE_EXP + Math.max(0, tiles - 3) * 2);
+
     if (battleMode) {
         battleScore++;
-        sendBattleAttack(comboCount >= 3 ? 2 : 1);
+        let atk = 1 + Math.floor(Math.max(0, tiles - 3) / 3); // 크게 지울수록 돌멩이 더 발사
+        if (comboCount >= 3) atk++;
+        sendBattleAttack(Math.min(4, atk));
         updateBattlePanel();
     }
-
-    // 매치에 인접한 돌멩이는 같이 파괴
-    const stoneClears = [];
-    if (battleMode) {
-        const stoneSeen = new Set();
-        matches.forEach(({row, col}) => {
-            [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dr, dc]) => {
-                const r = row + dr, c = col + dc;
-                if (r < 0 || c < 0 || r >= BOARD_SIZE || c >= BOARD_SIZE) return;
-                const k = r + '-' + c;
-                if (stoneSeen.has(k)) return;
-                if (board[r][c] && board[r][c].id === 'stone') {
-                    stoneSeen.add(k);
-                    stoneClears.push({ row: r, col: c });
-                    const cell = boardElement.children[r * BOARD_SIZE + c];
-                    if (cell) cell.classList.add('matching');
-                }
-            });
-        });
-    }
-    
-    const expGain = MATCH_BASE_EXP;
 
     if (comboCount >= 2) {
         comboText.textContent = comboCount;
@@ -1873,48 +2393,124 @@ function processMatches() {
     updateComboGauge();
     addTime(TIME_PER_MATCH);
 
-    const matchData = matches.map(m => ({ row: m.row, col: m.col, crop: board[m.row][m.col] }));
-    if (matchData.length > 0 && matchData[0]) {
-        showScorePopup(matchData[0], expGain, comboCount);
-        // 작물 이름 외치기 (콤보 2 이상일 때만, 너무 시끄럽지 않게)
-        if (comboCount >= 2 && matchData[0].crop) {
-            speakCropName(matchData[0].crop.name);
-        }
+    // 대표 셀/작물 (점수 팝업, 농장 떨어뜨리기, 작물 이름 외치기)
+    let repPos = null, repCrop = null;
+    for (const k of clearSet) {
+        const [r, c] = k.split('-').map(Number);
+        const p = board[r][c];
+        if (isCrop(p)) { repPos = { row: r, col: c }; repCrop = p; break; }
+    }
+    if (focusPos && clearSet.has(keyOf(focusPos.row, focusPos.col))) {
+        const fp = board[focusPos.row][focusPos.col];
+        if (isCrop(fp)) { repPos = focusPos; repCrop = fp; }
     }
 
-    matchData.forEach(m => {
-        const cell = boardElement.children[m.row * BOARD_SIZE + m.col];
+    if (repPos) showScorePopup(repPos, expGain, comboCount);
+    if (repCrop && comboCount >= 2) speakCropName(repCrop.name);
+
+    clearSet.forEach(k => {
+        const [r, c] = k.split('-').map(Number);
+        const cell = cellEl(r, c);
         if (cell) {
             spawnParticles(cell);
             cell.classList.add('matching');
         }
     });
 
-    if (matchData[0] && matchData[0].crop) {
-        const firstCell = boardElement.children[matchData[0].row * BOARD_SIZE + matchData[0].col];
-        if (firstCell) dropCropToField(firstCell, matchData[0].crop);
+    if (repPos && repCrop) {
+        const cell = cellEl(repPos.row, repPos.col);
+        if (cell) dropCropToField(cell, repCrop);
     }
 
     grantExpToActive(expGain);
 
     setTimeout(() => {
-        matches.forEach(({row, col}) => { board[row][col] = null; });
-        stoneClears.forEach(({row, col}) => { board[row][col] = null; });
-        dropDown();
-        fillEmpty();
-        renderBoard();
+        clearSet.forEach(k => {
+            const [r, c] = k.split('-').map(Number);
+            board[r][c] = null;
+        });
+        // 특수 블록은 제거된 자리에 생성
+        (spawnList || []).forEach(s => { board[s.row][s.col] = s.piece; });
+
+        const falls = dropDownWithFalls(board);
+        fillEmptyOn(board, getCurrentCrops());
+        renderBoard(falls);
 
         setTimeout(() => {
             if (puzzleTimer <= 0) return;
-            const more = findMatches();
-            if (more.length > 0) {
-                processMatches();
+            if (findRunsOn(board).length > 0) {
+                processMatches(null); // 연쇄
             } else {
                 comboCount = 0;
+                ensureMoves();
                 checkEndConditions();
             }
-        }, 300);
+        }, 340);
     }, 400);
+}
+
+// 낙하 거리 기록하며 중력 적용 (낙하 애니메이션용)
+function dropDownWithFalls(b) {
+    const falls = Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(0));
+    for (let col = 0; col < BOARD_SIZE; col++) {
+        let write = BOARD_SIZE - 1;
+        for (let row = BOARD_SIZE - 1; row >= 0; row--) {
+            if (b[row][col] !== null) {
+                if (write !== row) {
+                    b[write][col] = b[row][col];
+                    b[row][col] = null;
+                    falls[write][col] = write - row;
+                }
+                write--;
+            }
+        }
+        // 위쪽 빈칸(새 작물 스폰 자리)은 보드 위에서 떨어져 내려옴
+        for (let r = write; r >= 0; r--) falls[r][col] = write + 1;
+    }
+    return falls;
+}
+
+// 가능한 수가 없으면 자동 셔플 (돌멩이/특수 블록은 자리 유지)
+function ensureMoves() {
+    if (puzzleTimer <= 0 || isLocked) return;
+    // 특수 블록이 하나라도 있으면 그걸 쓸 수 있으니 통과
+    for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+            if (isSpecial(board[r][c])) return;
+        }
+    }
+    if (findHintCandidates().length > 0) return;
+    showToast('🔀 만들 수 있는 매치가 없어서 보드를 섞었어요!');
+    reshuffleBoard();
+}
+
+function reshuffleBoard() {
+    for (let attempt = 0; attempt < 12; attempt++) {
+        const cells = [], pieces = [];
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                if (isCrop(board[r][c])) { cells.push({ r, c }); pieces.push(board[r][c]); }
+            }
+        }
+        for (let i = pieces.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [pieces[i], pieces[j]] = [pieces[j], pieces[i]];
+        }
+        cells.forEach(({ r, c }, i) => { board[r][c] = pieces[i]; });
+        if (findMatchesOn(board).length === 0 && findHintCandidates().length > 0) {
+            renderBoard();
+            return;
+        }
+    }
+    // 12번 섞어도 안 되면 작물 새로 생성
+    const crops = getCurrentCrops();
+    for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+            if (isCrop(board[r][c])) board[r][c] = crops[Math.floor(Math.random() * crops.length)];
+        }
+    }
+    renderBoard();
+    if (findMatchesOn(board).length > 0) { comboCount = 0; processMatches(null); }
 }
 
 function checkEndConditions() {
@@ -2151,6 +2747,10 @@ function showScorePopup(matchPos, expGain, multiplier) {
 }
 
 function dropDown() {
+    dropDownOn(board);
+}
+
+function dropDownOn(board) {
     for (let col = 0; col < BOARD_SIZE; col++) {
         for (let row = BOARD_SIZE - 1; row >= 0; row--) {
             if (board[row][col] === null) {
@@ -2167,7 +2767,10 @@ function dropDown() {
 }
 
 function fillEmpty() {
-    const crops = getCurrentCrops();
+    fillEmptyOn(board, getCurrentCrops());
+}
+
+function fillEmptyOn(board, crops) {
     for (let row = 0; row < BOARD_SIZE; row++) {
         for (let col = 0; col < BOARD_SIZE; col++) {
             if (board[row][col] === null) {
@@ -2196,7 +2799,7 @@ function showResultScreen(reason) {
     const titleEl = document.getElementById('result-screen-title');
 
     if (reason === 'timeout') {
-        emojiEl.textContent = '⏰';
+        emojiEl.innerHTML = spriteTag('clock');
         titleEl.textContent = '시간 종료!';
     } else if (reason === 'full') {
         emojiEl.textContent = '🍽️';
@@ -2593,6 +3196,8 @@ function startBattleSession() {
 
     board = createBoard();
     renderBoard();
+    if (findHintCandidates().length === 0) reshuffleBoard();
+    renderOppBoardEmpty(); // 상대 보드 자리 표시 (첫 동기화 전)
     startTimer();
     startBGM();
 
@@ -2609,11 +3214,61 @@ function updateBattlePanel() {
 
 function sendBattleAttack(n) {
     battleAttacksSent += n;
-    if (battleIsBot && botState) {
-        // 봇은 돌을 맞으면 다음 매치가 느려짐
-        botState.slowdown = Math.min(4000, botState.slowdown + 700 * n);
-    }
+    // 봇전: 봇의 실제 보드에 돌멩이를 떨어뜨려 진짜로 방해함
+    if (battleIsBot) applyStonesToBotBoard(n);
     // PvP는 다음 폴링 때 누적값(battleAttacksSent)으로 전송됨
+}
+
+// ---- 상대 보드 실시간 표시 ----
+function renderOppBoard(b) {
+    const el = document.getElementById('opp-board');
+    if (!el || !b) return;
+    let html = '';
+    for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+            const cell = b[r] && b[r][c];
+            const id = cell ? cell.id : null;
+            html += '<div class="ocell' + (id === 'stone' ? ' stone' : '') + '">' + (id ? spriteTag(id) : '') + '</div>';
+        }
+    }
+    el.innerHTML = html;
+}
+
+function renderOppBoardEncoded(s) {
+    const el = document.getElementById('opp-board');
+    if (!el || !s || s.length < BOARD_SIZE * BOARD_SIZE) return;
+    let html = '';
+    for (let i = 0; i < BOARD_SIZE * BOARD_SIZE; i++) {
+        const id = CODE_TO_ID[s[i]] || null;
+        html += '<div class="ocell' + (id === 'stone' ? ' stone' : '') + '">' + (id ? spriteTag(id) : '') + '</div>';
+    }
+    el.innerHTML = html;
+}
+
+function renderOppBoardEmpty() {
+    const el = document.getElementById('opp-board');
+    if (!el) return;
+    let html = '';
+    for (let i = 0; i < BOARD_SIZE * BOARD_SIZE; i++) html += '<div class="ocell"></div>';
+    el.innerHTML = html;
+}
+
+function applyStonesToBotBoard(n) {
+    if (!botBoard || n <= 0) return;
+    const candidates = [];
+    for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+            if (botBoard[r][c] && botBoard[r][c].id !== 'stone') candidates.push({ r, c });
+        }
+    }
+    const maxApply = Math.max(0, candidates.length - 12);
+    const count = Math.min(n, maxApply);
+    for (let i = 0; i < count; i++) {
+        const idx = Math.floor(Math.random() * candidates.length);
+        const { r, c } = candidates.splice(idx, 1)[0];
+        botBoard[r][c] = STONE;
+    }
+    if (count > 0) renderOppBoard(botBoard);
 }
 
 // 상대가 보낸 돌멩이를 내 보드에 떨어뜨림
@@ -2641,6 +3296,7 @@ function applyIncomingStones(n) {
             setTimeout(() => panel.classList.remove('hit'), 500);
         }
         playMatchSound();
+        ensureMoves(); // 돌멩이 때문에 수가 막혔으면 자동 셔플
     }
 }
 
@@ -2659,6 +3315,7 @@ async function battlePollTick() {
         role: battleRole,
         score: battleScore,
         attacks: battleAttacksSent,
+        board: encodeBoard(board),
         done: battleFinished
     }, 0);
 
@@ -2672,6 +3329,7 @@ async function battlePollTick() {
     const opp = json.opponent;
     battleOppScore = Math.max(battleOppScore, opp.score || 0);
     updateBattlePanel();
+    if (opp.board) renderOppBoardEncoded(opp.board); // 상대 보드 실시간 반영
 
     // 새로 도착한 돌멩이 적용
     const newStones = (opp.attacks || 0) - battleAttacksApplied;
@@ -2692,29 +3350,114 @@ async function battlePollTick() {
     }
 }
 
-// ---- 봇 엔진 (중간 난이도: 평균 5초당 매치 1회, 가끔 콤보) ----
+// ---- 봇 엔진 (중간 난이도) ----
+// 봇은 자기 보드를 실제로 가지고 플레이함: 유효한 스왑을 찾아 매치 → 연쇄까지 처리.
+// 내가 보낸 돌멩이가 봇 보드를 진짜로 막아서 난이도가 자연스럽게 조절됨.
 function startBotEngine() {
-    botState = { slowdown: 0, nextAt: Date.now() + 3000 + Math.random() * 2000 };
-    botTickTimer = setInterval(botTick, 500);
+    botBoard = createBoard(); // battleMode라 배틀 작물 6종으로 생성됨
+    renderOppBoard(botBoard);
+    botState = { nextAt: Date.now() + 3500 + Math.random() * 2000 };
+    botTickTimer = setInterval(botTick, 400);
 }
 
 function stopBotEngine() {
     if (botTickTimer) { clearInterval(botTickTimer); botTickTimer = null; }
+    botBoard = null;
 }
 
 function botTick() {
-    if (!battleMode || !battleIsBot || battleFinished || !botState) return;
-    botState.slowdown = Math.max(0, botState.slowdown - 150);
+    if (!battleMode || !battleIsBot || battleFinished || !botState || !botBoard) return;
     const now = Date.now();
     if (now < botState.nextAt) return;
 
-    let stones = 1;
-    battleOppScore++;
-    if (Math.random() < 0.18) { battleOppScore++; stones = 2; } // 콤보
-    updateBattlePanel();
-    applyIncomingStones(stones);
+    const sw = findSwapOn(botBoard);
+    let events = 0;
+    if (sw) {
+        swapOn(botBoard, sw.r1, sw.c1, sw.r2, sw.c2);
+        events = botResolveBoard();
+    } else {
+        botShuffleBoard(); // 가능한 수가 없으면 섞기 (돌멩이는 그대로 유지)
+    }
 
-    botState.nextAt = now + 3800 + Math.random() * 2600 + botState.slowdown;
+    if (events > 0) {
+        battleOppScore += events;
+        updateBattlePanel();
+        applyIncomingStones(Math.min(3, events)); // 봇도 매치당 돌멩이 발사
+    }
+    renderOppBoard(botBoard);
+
+    botState.nextAt = now + 4200 + Math.random() * 2800;
+}
+
+// 봇 보드에서 매치 가능한 스왑 찾기 (시작 위치 랜덤화로 패턴 단조로움 방지)
+function findSwapOn(b) {
+    const isStone = (r, c) => b[r] && b[r][c] && b[r][c].id === 'stone';
+    const rOff = Math.floor(Math.random() * BOARD_SIZE);
+    const cOff = Math.floor(Math.random() * BOARD_SIZE);
+    for (let i = 0; i < BOARD_SIZE; i++) {
+        for (let j = 0; j < BOARD_SIZE; j++) {
+            const r = (i + rOff) % BOARD_SIZE;
+            const c = (j + cOff) % BOARD_SIZE;
+            if (isStone(r, c)) continue;
+            if (c < BOARD_SIZE - 1 && !isStone(r, c + 1)) {
+                swapOn(b, r, c, r, c + 1);
+                const m = findMatchesOn(b).length;
+                swapOn(b, r, c, r, c + 1);
+                if (m > 0) return { r1: r, c1: c, r2: r, c2: c + 1 };
+            }
+            if (r < BOARD_SIZE - 1 && !isStone(r + 1, c)) {
+                swapOn(b, r, c, r + 1, c);
+                const m = findMatchesOn(b).length;
+                swapOn(b, r, c, r + 1, c);
+                if (m > 0) return { r1: r, c1: c, r2: r + 1, c2: c };
+            }
+        }
+    }
+    return null;
+}
+
+// 봇 보드의 매치/연쇄를 즉시 정산 (이벤트 수 반환)
+function botResolveBoard() {
+    let events = 0;
+    let guard = 0;
+    while (guard++ < 10) {
+        const matches = findMatchesOn(botBoard);
+        if (matches.length === 0) break;
+        events++;
+        // 매치 인접 돌멩이도 파괴 (플레이어와 같은 규칙)
+        const stoneKill = [];
+        const seen = new Set();
+        matches.forEach(({ row, col }) => {
+            [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dr, dc]) => {
+                const r = row + dr, c = col + dc;
+                if (r < 0 || c < 0 || r >= BOARD_SIZE || c >= BOARD_SIZE) return;
+                const k = r + '-' + c;
+                if (seen.has(k)) return;
+                if (botBoard[r][c] && botBoard[r][c].id === 'stone') { seen.add(k); stoneKill.push({ r, c }); }
+            });
+        });
+        matches.forEach(({ row, col }) => { botBoard[row][col] = null; });
+        stoneKill.forEach(({ r, c }) => { botBoard[r][c] = null; });
+        dropDownOn(botBoard);
+        fillEmptyOn(botBoard, getCurrentCrops());
+    }
+    return events;
+}
+
+// 돌멩이는 두고 나머지 작물만 섞기
+function botShuffleBoard() {
+    const cells = [];
+    for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+            if (botBoard[r][c] && botBoard[r][c].id !== 'stone') cells.push({ r, c });
+        }
+    }
+    const crops = cells.map(({ r, c }) => botBoard[r][c]);
+    for (let i = crops.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [crops[i], crops[j]] = [crops[j], crops[i]];
+    }
+    cells.forEach(({ r, c }, i) => { botBoard[r][c] = crops[i]; });
 }
 
 // ---- 종료 / 결과 ----
@@ -2770,7 +3513,7 @@ function showBattleResult(result, reason) {
     scoreEl.textContent = battleScore + ' : ' + battleOppScore;
 
     if (result === 'win') {
-        emoji.textContent = '🏆';
+        emoji.innerHTML = spriteTag('trophy');
         title.textContent = '승리!';
         if (hearts < MAX_HEARTS) {
             hearts++;
@@ -2783,11 +3526,11 @@ function showBattleResult(result, reason) {
         updateHeartUI();
         saveStateNow();
     } else if (result === 'lose') {
-        emoji.textContent = '😢';
+        emoji.innerHTML = spriteTag('heartbreak');
         title.textContent = '패배...';
         desc.textContent = reason === 'forfeit' ? '기권해서 패배 처리됐어요' : '다음엔 이길 수 있어요!';
     } else {
-        emoji.textContent = '🤝';
+        emoji.innerHTML = spriteTag('star');
         title.textContent = '무승부';
         desc.textContent = '아쉽다! 한 번 더?';
     }
@@ -2872,6 +3615,13 @@ function init() {
     // 로그인 로고를 마인크래프트 잔디 블록으로
     const logo = document.querySelector('.login-logo');
     if (logo) logo.innerHTML = spriteTag('grassblock');
+
+    // data-icon 속성이 있는 모든 요소에 픽셀 아이콘 주입
+    document.querySelectorAll('[data-icon]').forEach(el => {
+        el.innerHTML = spriteTag(el.dataset.icon);
+    });
+
+    initBoardInput(); // 탭 + 스와이프 입력
     
     const savedUser = localStorage.getItem('pangpang-user');
     if (savedUser) {
