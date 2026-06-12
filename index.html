@@ -74,12 +74,12 @@
                 <button class="menu-btn menu-battle" onclick="goToBattle()">
                     <span class="menu-icon icon" data-icon="sword"></span>
                     <span class="menu-text">배틀</span>
-                    <span class="menu-sub">이기면 하트 +1</span>
+                    <span class="menu-sub">이기면 하트 +1 · 하루 1번</span>
                 </button>
-                <button class="menu-btn menu-contest" disabled>
+                <button class="menu-btn menu-contest" onclick="goToContest()">
                     <span class="menu-icon icon" data-icon="trophy"></span>
                     <span class="menu-text">먹방대회</span>
-                    <span class="menu-sub">준비중</span>
+                    <span class="menu-sub">주간 랭킹전 · 하루 1번</span>
                 </button>
                 <button class="menu-btn menu-settings" onclick="openSettings()">
                     <span class="menu-icon icon" data-icon="gear"></span>
@@ -133,6 +133,13 @@
                     <div class="opp-board-title"><span class="live-dot"></span> 상대 보드</div>
                     <div class="opp-board" id="opp-board"></div>
                 </div>
+            </div>
+
+            <!-- 먹방대회 점수판 (대회 모드에서만) -->
+            <div class="contest-panel" id="contest-panel">
+                <span class="contest-title"><span class="icon" data-icon="trophy"></span> 먹방대회</span>
+                <span class="contest-score-wrap">점수 <b id="contest-score">0</b></span>
+                <span class="contest-best" id="contest-best"></span>
             </div>
 
             <!-- 보드 + 콤보 게이지 영역 -->
@@ -263,7 +270,7 @@
                     🗑️ 데이터 초기화
                 </button>
                 <div class="settings-info">
-                    <p>버전 0.12 (퍼즐 정교화)</p>
+                    <p>버전 0.14 (랭킹 보상 + 1일 1회)</p>
                 </div>
             </div>
             <div class="modal-buttons">
@@ -302,6 +309,36 @@
             <p>내일 다시 먹이를 줄 수 있어요</p>
             <div class="modal-buttons">
                 <button class="btn-roulette" onclick="closeFull()">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 먹방대회 인트로 -->
+    <div class="modal-overlay" id="contest-overlay">
+        <div class="modal">
+            <div class="modal-emoji" data-icon="trophy"></div>
+            <h2>먹방대회</h2>
+            <p>60초 동안 최대한 많이 먹이세요! (하루 1번)<br>크게 지울수록 × 콤보가 길수록 점수 UP</p>
+            <p style="margin-top:-6px;">🏆 주간 랭킹 보상<br><b>1등 소 · 2등 돼지 · 3등 닭</b> 한 마리 증정!</p>
+            <div class="contest-info-box" id="contest-my-info">불러오는 중...</div>
+            <div class="modal-buttons">
+                <button class="btn-roulette" onclick="startContest()">도전하기 (❤️ 1개)</button>
+                <button class="btn-upgrade" onclick="closeContestIntro()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 먹방대회 결과 -->
+    <div class="modal-overlay" id="contest-result-overlay">
+        <div class="modal">
+            <div class="modal-emoji" data-icon="trophy"></div>
+            <h2>대회 종료!</h2>
+            <p id="contest-result-score" style="font-size:28px; font-weight:bold; color:#FF9447; margin:4px 0;">0점</p>
+            <p id="contest-result-rank"></p>
+            <div class="rank-list" id="contest-rank-list"></div>
+            <div class="modal-buttons">
+                <button class="btn-roulette" id="btn-contest-retry" onclick="retryContest()">다시 도전</button>
+                <button class="btn-upgrade" onclick="closeContestResult()">농장으로</button>
             </div>
         </div>
     </div>

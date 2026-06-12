@@ -416,6 +416,164 @@ function playBombSound() {
     } catch (e) {}
 }
 
+// 로켓 발사 (슈웅!)
+function playRocketSound() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(1400, now + 0.35);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.start(now); osc.stop(now + 0.4);
+    } catch (e) {}
+}
+
+// 무지개 별 (반짝이는 아르페지오)
+function playRainbowSound() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const now = audioCtx.currentTime;
+        [523, 659, 784, 1047, 1319].forEach((f, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'triangle';
+            osc.frequency.value = f;
+            gain.gain.setValueAtTime(0.15, now + i * 0.06);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.25);
+            osc.start(now + i * 0.06); osc.stop(now + i * 0.06 + 0.25);
+        });
+    } catch (e) {}
+}
+
+// 돌멩이 떨어짐 (쿵)
+function playStoneSound() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.exponentialRampToValueAtTime(50, now + 0.18);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc.start(now); osc.stop(now + 0.2);
+    } catch (e) {}
+}
+
+// 잘못된 스왑 (삑)
+function playInvalidSound() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const now = audioCtx.currentTime;
+        [0, 0.1].forEach(d => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'square';
+            osc.frequency.value = 160;
+            gain.gain.setValueAtTime(0.08, now + d);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + d + 0.07);
+            osc.start(now + d); osc.stop(now + d + 0.07);
+        });
+    } catch (e) {}
+}
+
+// 특수 블록 생성 (딩!)
+function playSpecialSpawnSound() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now);
+        osc.frequency.exponentialRampToValueAtTime(1320, now + 0.12);
+        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.start(now); osc.stop(now + 0.3);
+    } catch (e) {}
+}
+
+// 승리 팡파레
+function playWinFanfare() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const now = audioCtx.currentTime;
+        const seq = [[523, 0, 0.15], [659, 0.15, 0.15], [784, 0.3, 0.15], [1047, 0.45, 0.4]];
+        seq.forEach(([f, t, d]) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'triangle';
+            osc.frequency.value = f;
+            gain.gain.setValueAtTime(0.22, now + t);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + t + d);
+            osc.start(now + t); osc.stop(now + t + d);
+        });
+    } catch (e) {}
+}
+
+// 패배 (시무룩)
+function playLoseSound() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const now = audioCtx.currentTime;
+        [[392, 0], [330, 0.2], [262, 0.4]].forEach(([f, t]) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.value = f;
+            gain.gain.setValueAtTime(0.18, now + t);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + t + 0.3);
+            osc.start(now + t); osc.stop(now + t + 0.35);
+        });
+    } catch (e) {}
+}
+
+// 카운트다운 틱 (마지막 5초)
+function playTickSound() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.type = 'square';
+        osc.frequency.value = 1100;
+        gain.gain.setValueAtTime(0.07, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.start(now); osc.stop(now + 0.05);
+    } catch (e) {}
+}
+
+// 셔플 (휘리릭)
+function playShuffleSound() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const now = audioCtx.currentTime;
+        const bufferSize = audioCtx.sampleRate * 0.25;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize) * 0.5;
+        const noise = audioCtx.createBufferSource();
+        const gain = audioCtx.createGain();
+        noise.buffer = buffer;
+        noise.connect(gain); gain.connect(audioCtx.destination);
+        gain.gain.value = 0.15;
+        noise.start(now);
+    } catch (e) {}
+}
+
 // 레벨업 사운드 (띠리링)
 function playLevelUpSound() {
     if (!soundEnabled || !audioCtx) return;
@@ -708,21 +866,21 @@ const SPRITES = {
     },
     // ---- 작물 ----
     apple: {
-        p: { R: '#E53935', D: '#B71C1C', T: '#6D4C41', L: '#4CAF50', W: '#FFCDD2' },
+        p: { R: '#C62828', D: '#7F1414', T: '#6D4C41', L: '#4CAF50', W: '#FFE5E5' },
         g: [
-            '......T.........',
+            '......TT........',
             '......T.LL......',
             '.....T.LLLL.....',
-            '...RRRRRRRR.....',
+            '...RRR..RRR.....',
             '..RRRRRRRRRR....',
             '.RRWWRRRRRRRR...',
-            '.RRWRRRRRRRRR...',
-            '.RRRRRRRRRRRR...',
+            '.RWWRRRRRRRRR...',
+            '.RWRRRRRRRRRR...',
             '.RRRRRRRRRRRR...',
             '.RRRRRRRRRRRD...',
             '..RRRRRRRRRDD...',
-            '...RRRRRRRDD....',
-            '....RRRRRRD.....'
+            '..RRRRRRRRDD....',
+            '...RRRR.RRRD....'
         ]
     },
     banana: {
@@ -742,19 +900,20 @@ const SPRITES = {
         ]
     },
     tomato: {
-        p: { R: '#E53935', D: '#B71C1C', G: '#2E7D32', W: '#FFCDD2' },
+        p: { O: '#FF7043', R: '#E64A19', G: '#3F9B43', E: '#2E7D32', W: '#FFD9CC' },
         g: [
-            '.....G..G.......',
-            '....GGGGGG......',
-            '...RRGGGGRR.....',
-            '..RRRRRRRRRR....',
-            '.RRRRRRRRRRRR...',
-            '.RRWRRRRRRRRR...',
-            '.RRRRRRRRRRRR...',
-            '.RRRRRRRRRRRR...',
-            '..RRRRRRRRRD....',
-            '...RRRRRRRDD....',
-            '....RRRRRR......'
+            '...G....G...G...',
+            '....G..GG..G....',
+            '....GGGGGGGG....',
+            '..GGGEGGGGEGGG..',
+            '.OOOGGGGGGGGOOO.',
+            '.OOOOOOOOOOOOOO.',
+            '.OWWOOOOOOOOOOR.',
+            '.OWOOOOOOOOOORR.',
+            '.OOOOOOOOOOOORR.',
+            '..OOOOOOOOOORR..',
+            '...OOOOOOOORR...',
+            '.....OOOOOO.....'
         ]
     },
     corn: {
@@ -1193,6 +1352,22 @@ let mmStartTs = 0;
 
 let botBoard = null;            // 봇의 실제 보드 (실시간 표시용)
 
+// ---- 1일 1회 제한 (배틀/먹방대회) ----
+let lastBattleDate = '';
+let lastContestDate = '';
+
+function todayKST() {
+    return getKoreaTime().toISOString().slice(0, 10);
+}
+
+// ---- 먹방대회 상태 ----
+let contestMode = false;
+let contestScore = 0;
+let contestFinishing = false;
+let contestMyBest = 0;
+let timerMax = 90; // 모드별 타이머 최대값 (게이지 계산용)
+const CONTEST_TIME = 60;
+
 const STONE = { id: 'stone', emoji: '🪨', name: '돌멩이' };
 
 // 특수 블록: 4매치 → 로켓(줄 제거), 5매치/십자 → 무지개 별(같은 작물 전체 제거)
@@ -1250,7 +1425,7 @@ const starsMain = document.getElementById('stars-main');
 const timeTextMain = document.getElementById('time-text-main');
 
 function saveState() {
-    const state = { farmAnimals, activeAnimalId, hearts, dailyEatenToday, lastResetDate };
+    const state = { farmAnimals, activeAnimalId, hearts, dailyEatenToday, lastResetDate, lastBattleDate, lastContestDate };
     localStorage.setItem('pangpang-farm-v5', JSON.stringify(state));
     scheduleBackendSave(state);
 }
@@ -1271,6 +1446,8 @@ function loadLocalState() {
         hearts = s.hearts !== undefined ? s.hearts : 3;
         dailyEatenToday = s.dailyEatenToday || 0;
         lastResetDate = s.lastResetDate || '';
+        lastBattleDate = s.lastBattleDate || '';
+        lastContestDate = s.lastContestDate || '';
         return true;
     } catch (e) {
         return false;
@@ -1594,6 +1771,7 @@ function startPuzzleSession() {
     stopBigFarmWandering();
 
     puzzleTimer = INITIAL_TIME;
+    timerMax = INITIAL_TIME;
     sessionMatches = 0;
     sessionMaxCombo = 1;
     sessionGainedExp = 0;
@@ -1813,8 +1991,10 @@ function startTimer() {
     puzzleTimerInterval = setInterval(() => {
         puzzleTimer--;
         updateTimerDisplay();
+        if (puzzleTimer <= 5 && puzzleTimer > 0) playTickSound(); // 마지막 5초 긴장감
         if (puzzleTimer <= 0) {
             if (battleMode) finishBattle();
+            else if (contestMode) finishContest();
             else endPuzzleSession('timeout');
         }
     }, 1000);
@@ -1830,17 +2010,18 @@ function stopTimer() {
 function updateTimerDisplay() {
     if (timerText) timerText.textContent = puzzleTimer;
     if (timerGaugeFill) {
-        const percent = Math.max(0, Math.min(100, (puzzleTimer / INITIAL_TIME) * 100));
+        const percent = Math.max(0, Math.min(100, (puzzleTimer / timerMax) * 100));
         timerGaugeFill.style.width = percent + '%';
         if (puzzleTimer <= 15) timerGaugeFill.classList.add('warning');
         else timerGaugeFill.classList.remove('warning');
     }
 }
 function addTime(seconds) {
-    if (battleMode && seconds > 0) return; // 배틀은 공정성을 위해 시간 추가 없음 (힌트 비용 차감은 허용)
+    // 배틀/대회는 공정성을 위해 시간 추가 없음 (힌트 비용 차감은 허용)
+    if ((battleMode || contestMode) && seconds > 0) return;
     puzzleTimer += seconds;
     if (puzzleTimer < 0) puzzleTimer = 0;
-    if (puzzleTimer > INITIAL_TIME) puzzleTimer = INITIAL_TIME;
+    if (puzzleTimer > timerMax) puzzleTimer = timerMax;
     updateTimerDisplay();
 }
 
@@ -1852,6 +2033,7 @@ function useHint() {
         sessionHintsLeft--;
         updateHintButton();
     } else {
+        if (contestMode) { showToast('대회에서는 힌트를 3번까지만 쓸 수 있어요!'); return; }
         if (puzzleTimer < HINT_TIME_COST) {
             alert('남은 시간이 부족해서 힌트를 사용할 수 없어요!');
             return;
@@ -1918,7 +2100,7 @@ function findHintCandidates() {
 }
 
 function getCurrentCrops() {
-    if (battleMode) return ALL_CROPS.filter(c => BATTLE_CROP_IDS.includes(c.id));
+    if (battleMode || contestMode) return ALL_CROPS.filter(c => BATTLE_CROP_IDS.includes(c.id));
     const active = getActiveAnimal();
     const stage = active ? active.stage : 'chicken';
     const ids = CROPS_BY_STAGE[stage];
@@ -2110,7 +2292,7 @@ function animateInvalid(r1, c1, r2, c2) {
         setTimeout(() => {
             if (a) a.classList.add('shake');
             if (b) b.classList.add('shake');
-            playMatchSound();
+            playInvalidSound();
             setTimeout(() => { renderBoard(); isLocked = false; }, 280);
         }, 160);
     });
@@ -2379,15 +2561,36 @@ function executeClear(seedSet, spawnList, focusPos) {
         updateBattlePanel();
     }
 
+    // 먹방대회 점수: 지운 칸 × 10 × 콤보 (크고 길게 먹을수록 점수 폭발)
+    let contestGain = 0;
+    if (contestMode) {
+        contestGain = tiles * 10 * comboCount;
+        contestScore += contestGain;
+        updateContestPanel();
+    }
+
+    // 발동된 특수 블록에 맞는 사운드
+    let firedRainbow = false, firedRocket = false;
+    clearSet.forEach(k => {
+        const [r, c] = k.split('-').map(Number);
+        const p = board[r][c];
+        if (p && p.id === 'rainbow') firedRainbow = true;
+        else if (p && (p.id === 'rocket_h' || p.id === 'rocket_v')) firedRocket = true;
+    });
+
+    if (firedRainbow) playRainbowSound();
+    else if (firedRocket) playRocketSound();
+    else if (comboCount >= 2) playComboSound(comboCount);
+    else playMatchSound();
+
+    if (spawnList && spawnList.length > 0) playSpecialSpawnSound(); // 특수 블록 탄생
+
     if (comboCount >= 2) {
         comboText.textContent = comboCount;
         comboBox.style.opacity = '1';
         comboBox.style.transform = 'scale(1.2)';
         setTimeout(() => { comboBox.style.transform = 'scale(1)'; }, 200);
         setTimeout(() => { comboBox.style.opacity = '0'; }, 1500);
-        playComboSound(comboCount);
-    } else {
-        playMatchSound();
     }
 
     updateComboGauge();
@@ -2405,7 +2608,7 @@ function executeClear(seedSet, spawnList, focusPos) {
         if (isCrop(fp)) { repPos = focusPos; repCrop = fp; }
     }
 
-    if (repPos) showScorePopup(repPos, expGain, comboCount);
+    if (repPos) showScorePopup(repPos, contestMode ? contestGain : expGain, comboCount);
     if (repCrop && comboCount >= 2) speakCropName(repCrop.name);
 
     clearSet.forEach(k => {
@@ -2481,6 +2684,7 @@ function ensureMoves() {
     }
     if (findHintCandidates().length > 0) return;
     showToast('🔀 만들 수 있는 매치가 없어서 보드를 섞었어요!');
+    playShuffleSound();
     reshuffleBoard();
 }
 
@@ -2514,7 +2718,7 @@ function reshuffleBoard() {
 }
 
 function checkEndConditions() {
-    if (battleMode) return; // 배틀은 타이머 종료로만 끝남
+    if (battleMode || contestMode) return; // 배틀/대회는 타이머 종료로만 끝남
     if (dailyEatenToday >= DAILY_EXP_LIMIT && !isExpTest()) {
         setTimeout(() => endPuzzleSession('full'), 500);
         return;
@@ -2530,7 +2734,7 @@ function checkEndConditions() {
 }
 
 function grantExpToActive(amount) {
-    if (battleMode) return; // 배틀에서는 EXP 없음
+    if (battleMode || contestMode) return; // 배틀/대회에서는 EXP 없음 (대회는 순수 점수전)
     const active = getActiveAnimal();
     if (!active || active.level >= MAX_LEVEL) return;
     
@@ -2832,6 +3036,7 @@ function closeExit() {
 function exitToMain() {
     document.getElementById('exit-overlay').classList.remove('active');
     if (battleMode) { forfeitBattle(); return; }
+    if (contestMode) { finishContest(); return; } // 중도 포기해도 현재 점수로 제출
     endPuzzleSession('exit');
 }
 
@@ -3033,10 +3238,12 @@ function showPrize() {
     document.getElementById('prize-emoji').textContent = reward.emoji || '🎁';
 
     if (reward.type === 'miss') {
+        playLoseSound();
         document.getElementById('prize-title').textContent = '아쉽지만 꽝!';
         document.getElementById('prize-label').textContent = '다음 기회를 노려보세요';
         document.getElementById('prize-desc').textContent = '';
     } else {
+        playWinFanfare();
         document.getElementById('prize-title').textContent = '🎉 축하합니다!';
         document.getElementById('prize-label').textContent = reward.label;
         if (reward.type === 'coupon') {
@@ -3084,6 +3291,10 @@ function confirmReset() {
 // ============================================
 function goToBattle() {
     initAudio();
+    if (lastBattleDate === todayKST() && !testMode) {
+        showToast('⚔️ 배틀은 하루에 1번만 도전할 수 있어요! 내일 다시 만나요.');
+        return;
+    }
     battleResetState();
     mmStartTs = Date.now();
     mmActive = true;
@@ -3169,6 +3380,8 @@ function startBotBattle() {
 }
 
 function startBattleSession() {
+    lastBattleDate = todayKST(); // 입장 시점에 1일 1회 소진
+    saveState();
     battleMode = true;
     showScreen('puzzle');
     document.getElementById('screen-puzzle').classList.add('battle');
@@ -3176,6 +3389,7 @@ function startBattleSession() {
     stopActiveAnimalWandering();
 
     puzzleTimer = BATTLE_TIME;
+    timerMax = BATTLE_TIME;
     comboCount = 0;
     cumulativeCombo = 0;
     bombReady = false;
@@ -3295,7 +3509,7 @@ function applyIncomingStones(n) {
             panel.classList.add('hit');
             setTimeout(() => panel.classList.remove('hit'), 500);
         }
-        playMatchSound();
+        playStoneSound();
         ensureMoves(); // 돌멩이 때문에 수가 막혔으면 자동 셔플
     }
 }
@@ -3513,6 +3727,7 @@ function showBattleResult(result, reason) {
     scoreEl.textContent = battleScore + ' : ' + battleOppScore;
 
     if (result === 'win') {
+        playWinFanfare();
         emoji.innerHTML = spriteTag('trophy');
         title.textContent = '승리!';
         if (hearts < MAX_HEARTS) {
@@ -3526,6 +3741,7 @@ function showBattleResult(result, reason) {
         updateHeartUI();
         saveStateNow();
     } else if (result === 'lose') {
+        playLoseSound();
         emoji.innerHTML = spriteTag('heartbreak');
         title.textContent = '패배...';
         desc.textContent = reason === 'forfeit' ? '기권해서 패배 처리됐어요' : '다음엔 이길 수 있어요!';
@@ -3569,6 +3785,244 @@ function forfeitBattle() {
     showBattleResult('lose', 'forfeit');
 }
 
+// ============================================
+// 🍽️ 먹방대회 — 60초 점수 어택, 주간 랭킹전
+// 하트 1개로 도전, 지운 칸 × 10 × 콤보로 점수 계산, 최고 기록이 랭킹에 등록됨
+// ============================================
+async function goToContest() {
+    initAudio();
+    document.getElementById('contest-overlay').classList.add('active');
+    const info = document.getElementById('contest-my-info');
+    info.innerHTML = '랭킹 불러오는 중...';
+
+    const json = await apiCall({ action: 'contest_rank', userId: getUserId() }, 1);
+    if (json && json.ok) {
+        contestMyBest = json.myBest || 0;
+        let html = '';
+        if (json.myBest > 0) {
+            html += '이번 주 내 최고: <b>' + json.myBest.toLocaleString() + '점</b> (' + json.myRank + '위 / ' + json.total + '명)<br>';
+        } else {
+            html += '이번 주 첫 도전이에요!<br>';
+        }
+        if (json.top && json.top.length > 0) {
+            html += '👑 현재 1위: ' + json.top[0].name + ' — ' + Number(json.top[0].score).toLocaleString() + '점';
+        } else {
+            html += '👑 아직 1위가 없어요. 지금이 기회!';
+        }
+        info.innerHTML = html;
+    } else {
+        info.innerHTML = '랭킹을 불러오지 못했어요.<br>도전은 가능해요!';
+    }
+}
+
+function closeContestIntro() {
+    document.getElementById('contest-overlay').classList.remove('active');
+}
+
+function startContest() {
+    if (lastContestDate === todayKST() && !testMode) {
+        showToast('🍽️ 먹방대회는 하루에 1번만! 내일 다시 도전해주세요.');
+        return;
+    }
+    if (hearts <= 0 && !isHeartTest()) {
+        closeContestIntro();
+        document.getElementById('contest-result-overlay').classList.remove('active');
+        document.getElementById('no-heart-overlay').classList.add('active');
+        return;
+    }
+    if (!isHeartTest()) hearts--;
+    saveState();
+    updateHeartUI();
+    closeContestIntro();
+    document.getElementById('contest-result-overlay').classList.remove('active');
+    startContestSession();
+}
+
+function startContestSession() {
+    lastContestDate = todayKST(); // 입장 시점에 1일 1회 소진
+    saveState();
+    contestMode = true;
+    contestFinishing = false;
+    contestScore = 0;
+    showScreen('puzzle');
+    document.getElementById('screen-puzzle').classList.add('contest');
+    stopBigFarmWandering();
+
+    puzzleTimer = CONTEST_TIME;
+    timerMax = CONTEST_TIME;
+    comboCount = 0;
+    cumulativeCombo = 0;
+    bombReady = false;
+    selectedCell = null;
+    isLocked = false;
+    sessionHintsLeft = HINT_FREE_COUNT;
+    sessionMatches = 0;
+    sessionMaxCombo = 1;
+    sessionGainedExp = 0;
+    droppedCropQueue = [];
+    animalIsMovingToFood = false;
+
+    updateHintButton();
+    updateComboGauge();
+    updateContestPanel();
+
+    // 먹는 연출용 동물 (EXP는 없지만 먹방답게 먹는 모습은 보여줌)
+    const a = getActiveAnimal() || farmAnimals[0];
+    const spot = document.getElementById('puzzle-active-spot');
+    if (spot) {
+        spot.innerHTML = spriteTag(a ? animalSpriteName(a) : 'chick');
+        spot.classList.remove('adult');
+    }
+    activePosX = 20;
+    activePosY = 8;
+    initActiveAnimalPosition();
+
+    board = createBoard();
+    renderBoard();
+    if (findHintCandidates().length === 0) reshuffleBoard();
+    startTimer();
+    startActiveAnimalWandering();
+    startBGM();
+    playSpecialSpawnSound();
+}
+
+function updateContestPanel() {
+    const s = document.getElementById('contest-score');
+    if (s) s.textContent = contestScore.toLocaleString();
+    const b = document.getElementById('contest-best');
+    if (b) b.textContent = contestMyBest > 0 ? '주간 최고 ' + contestMyBest.toLocaleString() : '';
+}
+
+async function finishContest() {
+    if (contestFinishing) return;
+    contestFinishing = true;
+
+    stopTimer();
+    stopActiveAnimalWandering();
+    stopBGM();
+    isLocked = true;
+    const myScore = contestScore;
+
+    showLoading('점수 등록 중...');
+    const json = await apiCall({
+        action: 'contest_submit',
+        userId: getUserId(),
+        name: getUserName(),
+        score: myScore
+    }, 1);
+    hideLoading();
+
+    contestMode = false;
+    isLocked = false;
+    document.getElementById('screen-puzzle').classList.remove('contest');
+
+    document.getElementById('contest-result-score').textContent = myScore.toLocaleString() + '점';
+    const rankEl = document.getElementById('contest-result-rank');
+    const listEl = document.getElementById('contest-rank-list');
+
+    if (json && json.ok) {
+        contestMyBest = json.myBest || myScore;
+        const isNewBest = myScore >= contestMyBest && myScore > 0;
+        rankEl.innerHTML = (isNewBest ? '🎉 신기록! ' : '') +
+            '이번 주 <b>' + json.myRank + '위</b> / ' + json.total + '명' +
+            ' (최고 ' + Number(json.myBest).toLocaleString() + '점)';
+        listEl.innerHTML = renderRankList(json.top || []);
+        if (json.myRank <= 3) playWinFanfare();
+        else playSpecialSpawnSound();
+    } else {
+        rankEl.textContent = '⚠️ 랭킹 서버 연결 실패 — 이번 점수는 등록되지 않았어요.';
+        listEl.innerHTML = '';
+        playLoseSound();
+    }
+
+    // 1일 1회: 다시 도전 버튼 상태
+    const retryBtn = document.getElementById('btn-contest-retry');
+    if (retryBtn) {
+        if (testMode) {
+            retryBtn.disabled = false;
+            retryBtn.textContent = '다시 도전 (테스트)';
+        } else {
+            retryBtn.disabled = true;
+            retryBtn.textContent = '내일 다시 도전할 수 있어요';
+        }
+    }
+
+    document.getElementById('contest-result-overlay').classList.add('active');
+}
+
+function renderRankList(top) {
+    if (!top || top.length === 0) return '<div class="rank-row">아직 기록이 없어요</div>';
+    const medals = ['🥇', '🥈', '🥉'];
+    const myName = getUserName();
+    return top.map((r, i) => {
+        const me = r.name === myName ? ' me' : '';
+        return '<div class="rank-row' + me + '">' +
+            '<span class="rank-no">' + (medals[i] || (i + 1) + '위') + '</span>' +
+            '<span class="rank-name">' + escapeHtml(r.name) + '</span>' +
+            '<span class="rank-score">' + Number(r.score).toLocaleString() + '</span>' +
+            '</div>';
+    }).join('');
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function retryContest() {
+    startContest(); // 하트 확인 포함
+}
+
+function closeContestResult() {
+    document.getElementById('contest-result-overlay').classList.remove('active');
+    enterMain();
+}
+
+// ---- 주간 먹방대회 보상: 1등 소, 2등 돼지, 3등 닭 (다 자란 성체) ----
+// 매주 월요일 지난주 톱3가 확정되고, 접속하면 자동으로 농장에 도착
+async function checkContestReward() {
+    if (!getUserId()) return;
+    // 1단계: 받을 보상이 있는지 확인만 (claim 처리 안 함)
+    const peek = await apiCall({ action: 'contest_claim', userId: getUserId(), confirm: false }, 0);
+    if (!peek || !peek.ok || !peek.reward) return;
+
+    if (farmAnimals.length >= MAX_FARM_SLOTS) {
+        showToast('🏆 대회 보상 동물이 기다리고 있어요! 농장 자리를 비우면 자동으로 도착해요.');
+        return; // claim 안 했으니 다음 접속 때 다시 시도됨
+    }
+
+    // 2단계: 실제 수령 처리
+    const json = await apiCall({ action: 'contest_claim', userId: getUserId(), confirm: true }, 1);
+    if (!json || !json.ok || !json.reward) return;
+    grantContestReward(json.reward);
+}
+
+function grantContestReward(reward) {
+    const stageNames = { cow: '소', pig: '돼지', chicken: '닭' };
+    const medalNames = { 1: '금메달', 2: '은메달', 3: '동메달' };
+    const stage = ['cow', 'pig', 'chicken'].includes(reward.stage) ? reward.stage : 'chicken';
+
+    const animal = {
+        id: generateAnimalId(),
+        name: medalNames[reward.rank] || '챔피언',
+        stage: stage,
+        level: MAX_LEVEL, // 다 자란 성체 → 바로 룰렛 가능
+        exp: 0,
+        posX: 60 + Math.random() * 150,
+        posY: 100 + Math.random() * 40,
+        facingRight: true
+    };
+    farmAnimals.push(animal);
+    saveStateNow();
+    if (screenMain && screenMain.classList.contains('active')) renderBigFarm();
+
+    playWinFanfare();
+    document.getElementById('prize-emoji').innerHTML = spriteTag(stage);
+    document.getElementById('prize-title').textContent = '🏆 지난주 먹방대회 ' + reward.rank + '등!';
+    document.getElementById('prize-label').textContent = stageNames[stage] + ' 한 마리 증정!';
+    document.getElementById('prize-desc').textContent = '농장에 도착했어요.\n다 자란 동물이라 바로 룰렛도 돌릴 수 있어요!';
+    document.getElementById('prize-overlay').classList.add('active');
+}
+
 async function bootGame() {
     const localOk = loadLocalState();
 
@@ -3591,6 +4045,8 @@ async function bootGame() {
         hearts = result.data.hearts !== undefined ? result.data.hearts : 3;
         dailyEatenToday = result.data.dailyEatenToday || 0;
         lastResetDate = result.data.lastResetDate || '';
+        lastBattleDate = result.data.lastBattleDate || '';
+        lastContestDate = result.data.lastContestDate || '';
         console.log('✅ 서버 데이터 복원');
     }
 
@@ -3607,6 +4063,9 @@ async function bootGame() {
     } else {
         enterMain();
     }
+
+    // 지난주 먹방대회 보상 확인 (화면 안착 후)
+    setTimeout(checkContestReward, 1500);
 }
 
 function init() {
