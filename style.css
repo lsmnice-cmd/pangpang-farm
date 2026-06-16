@@ -1404,3 +1404,58 @@ button:disabled {
     text-align: left;
 }
 .rank-score { font-weight: bold; color: var(--orange-deep); }
+
+/* ============================================
+   🍽️ 먹방대회 동물 성장 (v0.15)
+   방향(--face: 1 / -1)과 크기(--contest-scale)를 transform에서 합성
+   ============================================ */
+.puzzle-active-spot {
+    --face: 1;
+    --contest-scale: 1;
+}
+
+/* 평소(비대회): 방향만 반영 — 기존 동작과 동일 */
+.puzzle-active-spot:not(.contest-grow) {
+    transform: scaleX(var(--face));
+}
+
+/* 대회 모드: 방향 × 크기. transform-origin을 바닥 중앙에 둬서 발이 땅에 붙은 채 위로 자람 */
+.puzzle-active-spot.contest-grow {
+    transform-origin: center bottom;
+    transform: scaleX(var(--face)) scale(var(--contest-scale));
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 6;
+    filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, 0.25));
+}
+
+/* 한 단계 커질 때 통통 튀는 강조 */
+.puzzle-active-spot.grow-pop {
+    animation: contestGrowPop 0.45s ease;
+}
+
+@keyframes contestGrowPop {
+    0% { transform: scaleX(var(--face)) scale(var(--contest-scale)); }
+    40% { transform: scaleX(var(--face)) scale(calc(var(--contest-scale) * 1.18)) rotate(-3deg); }
+    70% { transform: scaleX(var(--face)) scale(calc(var(--contest-scale) * 0.96)); }
+    100% { transform: scaleX(var(--face)) scale(var(--contest-scale)); }
+}
+
+/* 대회 모드에서 걷기/먹기 애니메이션은 커진 크기를 유지한 채 동작 */
+.puzzle-active-spot.contest-grow.walking {
+    animation: contestBob 0.3s ease-in-out infinite;
+}
+.puzzle-active-spot.contest-grow.chewing {
+    animation: contestChew 0.3s ease-in-out 3;
+}
+
+@keyframes contestBob {
+    0%, 100% { transform: scaleX(var(--face)) scale(var(--contest-scale)) translateY(0); }
+    50% { transform: scaleX(var(--face)) scale(var(--contest-scale)) translateY(-4px) rotate(-3deg); }
+}
+
+@keyframes contestChew {
+    0%, 100% { transform: scaleX(var(--face)) scale(var(--contest-scale)); }
+    25% { transform: scaleX(var(--face)) scale(calc(var(--contest-scale) * 1.12)) rotate(-4deg); }
+    50% { transform: scaleX(var(--face)) scale(calc(var(--contest-scale) * 0.96)); }
+    75% { transform: scaleX(var(--face)) scale(calc(var(--contest-scale) * 1.08)) rotate(4deg); }
+}

@@ -1806,7 +1806,7 @@ function initActiveAnimalPosition() {
     if (!animal) return;
     animal.style.left = activePosX + 'px';
     animal.style.bottom = activePosY + 'px';
-    animal.style.transform = 'scaleX(1)';
+    animal.style.setProperty('--face', '1');
 }
 
 function updatePuzzleUI() {
@@ -2842,8 +2842,8 @@ function eatNextDroppedCrop() {
     const targetYInFarm = dropsLayerTopInFarm + next.yInLayer;
     const targetBottom = farmRect.height - targetYInFarm - 20;
 
-    if (targetXInFarm > activePosX) animal.style.transform = 'scaleX(1)';
-    else if (targetXInFarm < activePosX) animal.style.transform = 'scaleX(-1)';
+    if (targetXInFarm > activePosX) animal.style.setProperty('--face', '1');
+    else if (targetXInFarm < activePosX) animal.style.setProperty('--face', '-1');
 
     activePosX = targetXInFarm;
     activePosY = Math.max(4, targetBottom);
@@ -2886,8 +2886,8 @@ function startActiveAnimalWandering() {
 
         if (Math.abs(targetX - activePosX) < 15 && Math.abs(targetBottom - activePosY) < 15) return;
 
-        if (targetX > activePosX) animal.style.transform = 'scaleX(1)';
-        else animal.style.transform = 'scaleX(-1)';
+        if (targetX > activePosX) animal.style.setProperty('--face', '1');
+        else animal.style.setProperty('--face', '-1');
 
         activePosX = targetX;
         activePosY = targetBottom;
@@ -3842,6 +3842,7 @@ function startContestSession() {
     lastContestDate = todayKST(); // 입장 시점에 1일 1회 소진
     saveState();
     contestMode = true;
+    contestSizeStep = 0;
     contestFinishing = false;
     contestScore = 0;
     showScreen('puzzle');
@@ -3891,6 +3892,29 @@ function updateContestPanel() {
     if (s) s.textContent = contestScore.toLocaleString();
     const b = document.getElementById('contest-best');
     if (b) b.textContent = contestMyBest > 0 ? '주간 최고 ' + contestMyBest.toLocaleString() : '';
+    updateContestAnimalSize();
+}
+
+// 먹방대회: 점수가 오를수록 먹는 동물이 점점 커짐 (1.0배 → 최대 2.6배)
+// 만점 기준 6000점에서 최대 크기. 단계별로 커질 때 통통 튀는 연출 + 효과음
+let contestSizeStep = 0;
+function updateContestAnimalSize() {
+    const spot = document.getElementById('puzzle-active-spot');
+    if (!spot) return;
+    const ratio = Math.min(1, contestScore / 6000);
+    const scale = 1 + ratio * 1.6; // 1.0 ~ 2.6배
+    spot.style.setProperty('--contest-scale', scale.toFixed(2));
+    spot.classList.add('contest-grow');
+
+    // 0.2배 단위로 한 계단 커질 때마다 통통 + 효과음
+    const step = Math.floor(ratio * 8);
+    if (step > contestSizeStep) {
+        contestSizeStep = step;
+        spot.classList.remove('grow-pop');
+        void spot.offsetWidth;
+        spot.classList.add('grow-pop');
+        playSpecialSpawnSound();
+    }
 }
 
 async function finishContest() {
@@ -3915,6 +3939,11 @@ async function finishContest() {
     contestMode = false;
     isLocked = false;
     document.getElementById('screen-puzzle').classList.remove('contest');
+    const spot = document.getElementById('puzzle-active-spot');
+    if (spot) {
+        spot.classList.remove('contest-grow', 'grow-pop');
+        spot.style.removeProperty('--contest-scale');
+    }
 
     document.getElementById('contest-result-score').textContent = myScore.toLocaleString() + '점';
     const rankEl = document.getElementById('contest-result-rank');
